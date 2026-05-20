@@ -16,13 +16,13 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild index.js --bundle --platform=node --outfile=dist/index.js --format=cjs"
+    "build": "rolldown -c"
   },
   "dependencies": {
     "iconv-lite": "^0.7.2",
     "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
-    "esbuild": "^0.27.0"
+    "rolldown": "^1.0.2"
   }
 }

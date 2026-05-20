@@ -1,9 +1,4 @@
-const PrintCPCL = require('./src/print_cpcl')
-const PrintPOS = require('./src/print_pos')
-const PrintPic = require('./src/print_pic')
-
-module.exports = {
-  PrintCPCL,
-  PrintPOS,
-  PrintPic
-}
+import PrintCPCL from './src/print_cpcl'
+import PrintPOS from './src/print_pos'
+import PrintPic from './src/print_pic'
+export { PrintCPCL, PrintPOS, PrintPic }
