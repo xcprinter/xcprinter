@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild index.js --bundle --outdir=dist/index.js"
+    "build": "esbuild index.js --bundle --platform=node --outfile=dist/index.js --format=cjs && esbuild index.mjs --bundle --platform=node --outfile=dist/index.mjs --format=esm"
   },
   "dependencies": {
     "iconv-lite": "^0.7.2",
