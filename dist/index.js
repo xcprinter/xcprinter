@@ -11326,11 +11326,6 @@ PrintCPCL.PADDING_TOP = 40;
 //#endregion
 //#region src/print_pos.js
 var PrintPOS = class PrintPOS {
-	static TXT_NORMAL = [
-		27,
-		33,
-		0
-	];
 	constructor() {
 		this.data = [];
 		this.debug = false;
@@ -11438,6 +11433,11 @@ var PrintPOS = class PrintPOS {
 		return [value % 256, Math.floor(value / 256)];
 	}
 };
+PrintPOS.TXT_NORMAL = [
+	27,
+	33,
+	0
+];
 //#endregion
 //#region src/print_pic.js
 var PrintPic = class {
