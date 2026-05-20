@@ -11470,7 +11470,7 @@ var PrintPic = class {
 			console.debug("canvas 数据：", imageData);
 			const data = this.imgToRaster(imageData, dw, dh);
 			console.debug("转化后的数据:", data);
-			success?.(data);
+			if (success) success(data);
 		});
 	}
 	imgToRaster(rgba, w, h) {
