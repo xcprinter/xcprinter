@@ -5,8 +5,7 @@ export default defineConfig([
     input: 'index.js',
     output: [
       {
-        format: 'umd',
-        // UMD builds require a global name so consumers can access exports
+        format: 'cjs',
         name: 'xcprinter',
         file: 'dist/index.js'
       },
