@@ -2,7 +2,8 @@ import iconv from 'iconv-lite'
 import Qrcode from 'qrcode-generator'
 
 export default class PrintCPCL {
-  static PADDING_TOP = 40
+  // avoid using class fields/private methods so output is compatible with older JS parsers
+  // static PADDING_TOP = 40  (replaced below)
 
   constructor({ width = 72, height = 40 } = {}) {
     this.width = width * 8
@@ -10,14 +11,14 @@ export default class PrintCPCL {
     this.qty = 1
     this.currentY = PrintCPCL.PADDING_TOP
     this.data = []
-    this.#pushData(`! 0 200 200 ${this.height} ${this.qty}`)
+    this._pushData(`! 0 200 200 ${this.height} ${this.qty}`)
     //this.#pushData(`PW ${this.width}`)
     //this.#pushData('PREFEED 64')
   }
 
   render() {
-    this.#pushData('FORM')
-    this.#pushData('PRINT')
+    this._pushData('FORM')
+    this._pushData('PRINT')
 
     console.debug('打印数据：')
     console.debug(this.data)
@@ -26,18 +27,18 @@ export default class PrintCPCL {
   }
 
   text(data, { font = 8, size = 0, x = 0, y = 36, line_add = true } = {}) {
-    this.#pushData(`T ${font} ${size} ${x} ${this.currentY} ${data}`)
+    this._pushData(`T ${font} ${size} ${x} ${this.currentY} ${data}`)
     if (line_add) {
       this.currentY = this.currentY + y
     }
   }
 
   text_big(data, { size = 1, ...options } = {}) {
-    this.#pushData('SETBOLD 2')
-    this.#pushData(`SETMAG ${size} ${size}`)
+    this._pushData('SETBOLD 2')
+    this._pushData(`SETMAG ${size} ${size}`)
     this.text(data, { size: size, y: 36 * size, ...options })
-    this.#pushData('SETMAG 0 0')
-    this.#pushData('SETBOLD 0')
+    this._pushData('SETMAG 0 0')
+    this._pushData('SETBOLD 0')
   }
 
   qrcode_right(data, { y = PrintCPCL.PADDING_TOP, u = 6 } = {}) {
@@ -48,7 +49,7 @@ export default class PrintCPCL {
     console.debug('qrcode size：', size)
     const x = this.width - (u * size) - 16
 
-    this.#pushData(
+    this._pushData(
       `B QR ${x} ${y} M 2 U ${u}`,
       `MA,${data}`,
       'ENDQR'
@@ -56,12 +57,12 @@ export default class PrintCPCL {
   }
 
   box({ x0 = 0, y0 = this.currentY, x1 = 150, y1 = this.currentY + 150, width = 2 } = {}) {
-    this.#pushData(`BOX ${x0} ${y0} ${x1} ${y1} ${width}`)
+    this._pushData(`BOX ${x0} ${y0} ${x1} ${y1} ${width}`)
     this.currentY = this.currentY + y1
   }
 
   lineX({ x0 = 0, x1 = 40 * 8, width = 8, height = 36 } = {}) {
-    this.#pushData(`L ${x0} ${this.currentY} ${x1} ${this.currentY} ${width}`)
+    this._pushData(`L ${x0} ${this.currentY} ${x1} ${this.currentY} ${width}`)
     this.currentY = this.currentY + height
   }
 
@@ -76,14 +77,19 @@ export default class PrintCPCL {
   }
 
   barcode(data, { width = 1, ratio = 1, height = 50, x = 0 } = {}) {
-    this.#pushData(`B 39 ${width} ${ratio} ${height} ${x} ${this.currentY} ${data}`)
+    this._pushData(`B 39 ${width} ${ratio} ${height} ${x} ${this.currentY} ${data}`)
     this.currentY = this.currentY + height
   }
 
-  #pushData(...value) {
+  // regular (non-private) helper so output is transpile-friendly
+  _pushData(...value) {
     value.forEach(i => {
       this.data.push(...iconv.encode(`${i}\r\n`, 'gb18030'))
     })
   }
 
 }
+
+// define static constant without using class fields syntax
+PrintCPCL.PADDING_TOP = 40
+

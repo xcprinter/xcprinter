@@ -11264,36 +11264,35 @@ qrcode.stringToBytes;
 //#endregion
 //#region src/print_cpcl.js
 var PrintCPCL = class PrintCPCL {
-	static PADDING_TOP = 40;
 	constructor({ width = 72, height = 40 } = {}) {
 		this.width = width * 8;
 		this.height = height * 8;
 		this.qty = 1;
 		this.currentY = PrintCPCL.PADDING_TOP;
 		this.data = [];
-		this.#pushData(`! 0 200 200 ${this.height} ${this.qty}`);
+		this._pushData(`! 0 200 200 ${this.height} ${this.qty}`);
 	}
 	render() {
-		this.#pushData("FORM");
-		this.#pushData("PRINT");
+		this._pushData("FORM");
+		this._pushData("PRINT");
 		console.debug("打印数据：");
 		console.debug(this.data);
 		return this.data;
 	}
 	text(data, { font = 8, size = 0, x = 0, y = 36, line_add = true } = {}) {
-		this.#pushData(`T ${font} ${size} ${x} ${this.currentY} ${data}`);
+		this._pushData(`T ${font} ${size} ${x} ${this.currentY} ${data}`);
 		if (line_add) this.currentY = this.currentY + y;
 	}
 	text_big(data, { size = 1, ...options } = {}) {
-		this.#pushData("SETBOLD 2");
-		this.#pushData(`SETMAG ${size} ${size}`);
+		this._pushData("SETBOLD 2");
+		this._pushData(`SETMAG ${size} ${size}`);
 		this.text(data, {
 			size,
 			y: 36 * size,
 			...options
 		});
-		this.#pushData("SETMAG 0 0");
-		this.#pushData("SETBOLD 0");
+		this._pushData("SETMAG 0 0");
+		this._pushData("SETBOLD 0");
 	}
 	qrcode_right(data, { y = PrintCPCL.PADDING_TOP, u = 6 } = {}) {
 		const qrcodeEncoder = qrcode(4, "M");
@@ -11302,14 +11301,14 @@ var PrintCPCL = class PrintCPCL {
 		const size = qrcodeEncoder.getModuleCount();
 		console.debug("qrcode size：", size);
 		const x = this.width - u * size - 16;
-		this.#pushData(`B QR ${x} ${y} M 2 U ${u}`, `MA,${data}`, "ENDQR");
+		this._pushData(`B QR ${x} ${y} M 2 U ${u}`, `MA,${data}`, "ENDQR");
 	}
 	box({ x0 = 0, y0 = this.currentY, x1 = 150, y1 = this.currentY + 150, width = 2 } = {}) {
-		this.#pushData(`BOX ${x0} ${y0} ${x1} ${y1} ${width}`);
+		this._pushData(`BOX ${x0} ${y0} ${x1} ${y1} ${width}`);
 		this.currentY = this.currentY + y1;
 	}
 	lineX({ x0 = 0, x1 = 320, width = 8, height = 36 } = {}) {
-		this.#pushData(`L ${x0} ${this.currentY} ${x1} ${this.currentY} ${width}`);
+		this._pushData(`L ${x0} ${this.currentY} ${x1} ${this.currentY} ${width}`);
 		this.currentY = this.currentY + height;
 	}
 	image(dataArray, { x = 0, meta = {} } = {}) {
@@ -11320,15 +11319,16 @@ var PrintCPCL = class PrintCPCL {
 		this.currentY = this.currentY + meta.height;
 	}
 	barcode(data, { width = 1, ratio = 1, height = 50, x = 0 } = {}) {
-		this.#pushData(`B 39 ${width} ${ratio} ${height} ${x} ${this.currentY} ${data}`);
+		this._pushData(`B 39 ${width} ${ratio} ${height} ${x} ${this.currentY} ${data}`);
 		this.currentY = this.currentY + height;
 	}
-	#pushData(...value) {
+	_pushData(...value) {
 		value.forEach((i) => {
 			this.data.push(...import_lib.default.encode(`${i}\r\n`, "gb18030"));
 		});
 	}
 };
+PrintCPCL.PADDING_TOP = 40;
 //#endregion
 //#region src/print_pos.js
 var PrintPOS = class PrintPOS {
