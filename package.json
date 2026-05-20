@@ -1,6 +1,6 @@
 {
   "name": "xcprinter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CPCL / POS printer",
   "keywords": [
     "CPCL",
@@ -10,8 +10,8 @@
   "license": "ISC",
   "author": "mingyuan0715@foxmail.com",
   "exports": {
-    "require": "./index.js",
-    "import": "./index.mjs"
+    "require": "./dist/index.js",
+    "import": "./dist/index.mjs"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
