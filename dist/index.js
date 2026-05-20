@@ -11429,12 +11429,12 @@ var PrintPOS = class PrintPOS {
 		this.data.push(...barPostion, ...barHeight, ...barWidth, ...barFormat, ...bytes, 0);
 	}
 	image(value, meta) {
-		this.data.push(29, 118, 48, 0, ...this.#doubleDigit(meta.byteWidth), ...this.#doubleDigit(meta.height), ...value);
+		this.data.push(29, 118, 48, 0, ...this._doubleDigit(meta.byteWidth), ...this._doubleDigit(meta.height), ...value);
 	}
 	disconnect() {
 		this.data.push(31, 40, 99, 2, 0, 68, 66);
 	}
-	#doubleDigit(value) {
+	_doubleDigit(value) {
 		return [value % 256, Math.floor(value / 256)];
 	}
 };

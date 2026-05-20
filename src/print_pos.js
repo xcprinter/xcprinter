@@ -76,8 +76,8 @@ export default class PrintPOS {
   image(value, meta) {
     this.data.push(
       0x1d, 0x76, 0x30, 0x00,
-      ...this.#doubleDigit(meta.byteWidth),
-      ...this.#doubleDigit(meta.height),
+      ...this._doubleDigit(meta.byteWidth),
+      ...this._doubleDigit(meta.height),
       ...value
     )
   }
@@ -88,7 +88,7 @@ export default class PrintPOS {
     )
   }
 
-  #doubleDigit(value) {
+  _doubleDigit(value) {
     return [value % 256, Math.floor(value / 256)]
   }
 
