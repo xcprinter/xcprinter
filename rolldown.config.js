@@ -6,11 +6,15 @@ export default defineConfig([
     output: [
       {
         format: 'umd',
-        file: 'dist/index.js'
+        // UMD builds require a global name so consumers can access exports
+        name: 'xcprinter',
+        file: 'dist/index.js',
+        sourcemap: true
       },
       {
         format: 'esm',
-        file: 'dist/index.mjs'
+        file: 'dist/index.mjs',
+        sourcemap: true
       }
     ]
   }
