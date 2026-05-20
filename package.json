@@ -1,6 +1,6 @@
 {
   "name": "xcprinter",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CPCL / POS printer",
   "keywords": [
     "CPCL",
@@ -9,6 +9,7 @@
   ],
   "license": "ISC",
   "author": "mingyuan0715@foxmail.com",
+  "main": "dist/index.js",
   "exports": {
     "require": "./dist/index.js",
     "import": "./dist/index.mjs"
