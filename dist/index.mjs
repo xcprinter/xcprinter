@@ -11523,5 +11523,3 @@ var PrintPic = class {
 };
 //#endregion
 export { PrintCPCL, PrintPOS, PrintPic };
-
-//# sourceMappingURL=index.mjs.map

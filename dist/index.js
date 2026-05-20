@@ -11526,5 +11526,3 @@
 	exports.PrintPOS = PrintPOS;
 	exports.PrintPic = PrintPic;
 });
-
-//# sourceMappingURL=index.js.map
