@@ -25,99 +25,50 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
 	throw Error("Calling `require` for \"" + x + "\" in an environment that doesn't expose the `require` function. See https://rolldown.rs/in-depth/bundling-cjs#require-external-modules for more details.");
 });
 //#endregion
-//#region node_modules/safer-buffer/safer.js
-var require_safer = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var buffer = __require("buffer");
-	var Buffer = buffer.Buffer;
-	var safer = {};
-	var key;
-	for (key in buffer) {
-		if (!buffer.hasOwnProperty(key)) continue;
-		if (key === "SlowBuffer" || key === "Buffer") continue;
-		safer[key] = buffer[key];
-	}
-	var Safer = safer.Buffer = {};
-	for (key in Buffer) {
-		if (!Buffer.hasOwnProperty(key)) continue;
-		if (key === "allocUnsafe" || key === "allocUnsafeSlow") continue;
-		Safer[key] = Buffer[key];
-	}
-	safer.Buffer.prototype = Buffer.prototype;
-	if (!Safer.from || Safer.from === Uint8Array.from) Safer.from = function(value, encodingOrOffset, length) {
-		if (typeof value === "number") throw new TypeError("The \"value\" argument must not be of type number. Received type " + typeof value);
-		if (value && typeof value.length === "undefined") throw new TypeError("The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type " + typeof value);
-		return Buffer(value, encodingOrOffset, length);
-	};
-	if (!Safer.alloc) Safer.alloc = function(size, fill, encoding) {
-		if (typeof size !== "number") throw new TypeError("The \"size\" argument must be of type number. Received type " + typeof size);
-		if (size < 0 || size >= 2 * (1 << 30)) throw new RangeError("The value \"" + size + "\" is invalid for option \"size\"");
-		var buf = Buffer(size);
-		if (!fill || fill.length === 0) buf.fill(0);
-		else if (typeof encoding === "string") buf.fill(fill, encoding);
-		else buf.fill(fill);
-		return buf;
-	};
-	if (!safer.kStringMaxLength) try {
-		safer.kStringMaxLength = process.binding("buffer").kStringMaxLength;
-	} catch (e) {}
-	if (!safer.constants) {
-		safer.constants = { MAX_LENGTH: safer.kMaxLength };
-		if (safer.kStringMaxLength) safer.constants.MAX_STRING_LENGTH = safer.kStringMaxLength;
-	}
-	module.exports = safer;
-}));
-//#endregion
 //#region node_modules/iconv-lite/lib/bom-handling.js
 var require_bom_handling = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var BOMChar = "﻿";
-	exports.PrependBOM = PrependBOMWrapper;
-	function PrependBOMWrapper(encoder, options) {
-		this.encoder = encoder;
-		this.addBOM = true;
-	}
-	PrependBOMWrapper.prototype.write = function(str) {
-		if (this.addBOM) {
-			str = BOMChar + str;
-			this.addBOM = false;
+	exports.PrependBOM = class PrependBOMWrapper {
+		constructor(encoder) {
+			this.encoder = encoder;
+			this.addBOM = true;
 		}
-		return this.encoder.write(str);
-	};
-	PrependBOMWrapper.prototype.end = function() {
-		return this.encoder.end();
-	};
-	exports.StripBOM = StripBOMWrapper;
-	function StripBOMWrapper(decoder, options) {
-		this.decoder = decoder;
-		this.pass = false;
-		this.options = options || {};
-	}
-	StripBOMWrapper.prototype.write = function(buf) {
-		var res = this.decoder.write(buf);
-		if (this.pass || !res) return res;
-		if (res[0] === BOMChar) {
-			res = res.slice(1);
-			if (typeof this.options.stripBOM === "function") this.options.stripBOM();
+		write(str) {
+			if (this.addBOM) {
+				str = BOMChar + str;
+				this.addBOM = false;
+			}
+			return this.encoder.write(str);
 		}
-		this.pass = true;
-		return res;
+		end() {
+			return this.encoder.end();
+		}
 	};
-	StripBOMWrapper.prototype.end = function() {
-		return this.decoder.end();
+	exports.StripBOM = class StripBOMWrapper {
+		constructor(decoder, options) {
+			this.decoder = decoder;
+			this.pass = false;
+			this.options = options || {};
+		}
+		write(buf) {
+			var res = this.decoder.write(buf);
+			if (this.pass || !res) return res;
+			if (res[0] === BOMChar) {
+				res = res.slice(1);
+				if (typeof this.options.stripBOM === "function") this.options.stripBOM();
+			}
+			this.pass = true;
+			return res;
+		}
+		end() {
+			return this.decoder.end();
+		}
 	};
-}));
-//#endregion
-//#region node_modules/iconv-lite/lib/helpers/merge-exports.js
-var require_merge_exports = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var hasOwn = typeof Object.hasOwn === "undefined" ? Function.call.bind(Object.prototype.hasOwnProperty) : Object.hasOwn;
-	function mergeModules(target, module$1) {
-		for (var key in module$1) if (hasOwn(module$1, key)) target[key] = module$1[key];
-	}
-	module.exports = mergeModules;
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/internal.js
 var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Buffer = require_safer().Buffer;
+	var Buffer$2 = __require("buffer").Buffer;
 	module.exports = {
 		utf8: {
 			type: "_internal",
@@ -128,11 +79,6 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			bomAware: true
 		},
 		unicode11utf8: "utf8",
-		ucs2: {
-			type: "_internal",
-			bomAware: true
-		},
-		utf16le: "ucs2",
 		binary: { type: "_internal" },
 		base64: { type: "_internal" },
 		hex: { type: "_internal" },
@@ -146,7 +92,7 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		else if (this.enc === "cesu8") {
 			this.enc = "utf8";
 			this.encoder = InternalEncoderCesu8;
-			if (Buffer.from("eda0bdedb2a9", "hex").toString() !== "💩") {
+			if (Buffer$2.from("eda0bdedb2a9", "hex").toString() !== "💩") {
 				this.decoder = InternalDecoderCesu8;
 				this.defaultCharUnicode = iconv.defaultCharUnicode;
 			}
@@ -154,22 +100,39 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}
 	InternalCodec.prototype.encoder = InternalEncoder;
 	InternalCodec.prototype.decoder = InternalDecoder;
-	var StringDecoder = __require("string_decoder").StringDecoder;
 	function InternalDecoder(options, codec) {
-		this.decoder = new StringDecoder(codec.enc);
+		if (codec.enc === "hex" || codec.enc === "base64" || codec.enc === "binary") this.decoder = {
+			enc: codec.enc,
+			buffer: Buffer$2.from(""),
+			decode: function(buf) {
+				if (buf === void 0) {
+					var res = this.buffer;
+					this.buffer = Buffer$2.from("");
+					return res.toString(this.enc);
+				} else {
+					if (!Buffer$2.isBuffer(buf)) buf = Buffer$2.from(buf);
+					this.buffer = Buffer$2.concat([this.buffer, buf]);
+					return "";
+				}
+			}
+		};
+		else this.decoder = new TextDecoder(codec.enc, {
+			ignoreBOM: options?.stripBOM === false || typeof options?.stripBOM === "function",
+			fatal: !!options?.fatal
+		});
 	}
 	InternalDecoder.prototype.write = function(buf) {
-		if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf);
-		return this.decoder.write(buf);
+		if (!Buffer$2.isBuffer(buf)) buf = Buffer$2.from(buf);
+		return this.decoder.decode(buf, { stream: true });
 	};
 	InternalDecoder.prototype.end = function() {
-		return this.decoder.end();
+		return this.decoder.decode();
 	};
 	function InternalEncoder(options, codec) {
 		this.enc = codec.enc;
 	}
 	InternalEncoder.prototype.write = function(str) {
-		return Buffer.from(str, this.enc);
+		return Buffer$2.from(str, this.enc);
 	};
 	InternalEncoder.prototype.end = function() {};
 	function InternalEncoderBase64(options, codec) {
@@ -180,14 +143,14 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		var completeQuads = str.length - str.length % 4;
 		this.prevStr = str.slice(completeQuads);
 		str = str.slice(0, completeQuads);
-		return Buffer.from(str, "base64");
+		return Buffer$2.from(str, "base64");
 	};
 	InternalEncoderBase64.prototype.end = function() {
-		return Buffer.from(this.prevStr, "base64");
+		return Buffer$2.from(this.prevStr, "base64");
 	};
 	function InternalEncoderCesu8(options, codec) {}
 	InternalEncoderCesu8.prototype.write = function(str) {
-		var buf = Buffer.alloc(str.length * 3);
+		var buf = Buffer$2.alloc(str.length * 3);
 		var bufIdx = 0;
 		for (var i = 0; i < str.length; i++) {
 			var charCode = str.charCodeAt(i);
@@ -266,188 +229,333 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				str = str.slice(0, str.length - 1);
 			}
 		}
-		return Buffer.from(str, this.enc);
+		return Buffer$2.from(str, this.enc);
 	};
 	InternalEncoderUtf8.prototype.end = function() {
 		if (this.highSurrogate) {
 			var str = this.highSurrogate;
 			this.highSurrogate = "";
-			return Buffer.from(str, this.enc);
+			return Buffer$2.from(str, this.enc);
 		}
 	};
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/utf32.js
 var require_utf32 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = require_safer().Buffer;
-	exports._utf32 = Utf32Codec;
-	function Utf32Codec(codecOptions, iconv) {
-		this.iconv = iconv;
-		this.bomAware = true;
-		this.isLE = codecOptions.isLE;
-	}
-	exports.utf32le = {
-		type: "_utf32",
-		isLE: true
+	/**
+	* UTF-32LE / UTF-32BE / UTF-32 (auto) codecs.
+	*
+	* Browser-native: the conversion uses only plain Uint8Array byte I/O, never the Node Buffer (the
+	* backend is touched only for the encoder's final "bytes -> result" step, so encoding keeps returning
+	* a Buffer in Node, like the utf16 codec). There is no TextDecoder for UTF-32 (the WHATWG Encoding
+	* Standard dropped it), so the code unit <-> UTF-16 conversion is done by hand here.
+	*
+	* Unlike UTF-8 (RFC 3629) and UTF-16 (RFC 2781), UTF-32 has no dedicated IETF RFC. It is defined by
+	* The Unicode Standard, Chapter 3: the encoding form in Section 3.9 (definition D90, each Unicode
+	* scalar value <-> one 32-bit code unit) and the byte-order serialization in Section 3.10 (D99 UTF-32,
+	* D100 UTF-32BE, D101 UTF-32LE); also ISO/IEC 10646 (UCS-4). (The former UAX #19 has been retired into
+	* the core standard.) Conformance: a UTF-32 code unit must be a Unicode scalar value (definition D76),
+	* i.e. 0..0x10FFFF EXCLUDING the surrogate range 0xD800..0xDFFF (surrogate code points are not scalar
+	* values, so they cannot appear in UTF-32). On decode, any other value - a surrogate code point, a
+	* value above 0x10FFFF, or a truncated trailing code unit - is replaced with the bad-char (U+FFFD by
+	* default), or throws with { fatal: true }. On encode, a lone (unpaired) surrogate in the input is
+	* replaced with U+FFFD so the output is always well-formed UTF-32.
+	*
+	* @see https://www.unicode.org/versions/latest/core-spec/chapter-3/ (The Unicode Standard, ch. 3: Sections 3.9 and 3.10)
+	* @see https://unicode.org/faq/utf_bom#utf32-7
+	*/
+	/** Unicode replacement character, emitted by the encoder for ill-formed input. */
+	const REPLACEMENT = 65533;
+	/** Max args for one String.fromCharCode.apply() before risking a call-stack overflow. */
+	const CHARS_CHUNK = 8192;
+	/** Above this many UTF-16 code units, the native TextDecoder beats fromCharCode; below it the setup costs more. */
+	const TEXT_DECODER_MIN_UNITS = 64;
+	/**
+	* Decodes the code-unit buffer to a string. The decoder only puts well-formed UTF-16 here (BMP units
+	* and proper surrogate pairs, never a lone surrogate), so this native decode is safe. Viewing the
+	* Uint16Array as little-endian bytes assumes a little-endian platform, which iconv-lite already does.
+	* @type {TextDecoder}
+	*/
+	const utf16leDecoder = new TextDecoder("utf-16le", { ignoreBOM: true });
+	/** UTF-32LE codec. */
+	var Utf32LECodec = class {
+		createEncoder(options, iconv) {
+			return new Utf32Encoder(iconv.backend, true);
+		}
+		createDecoder(options, iconv) {
+			return new Utf32Decoder(true, iconv.defaultCharUnicode.charCodeAt(0), !!(options && options.fatal));
+		}
+		get bomAware() {
+			return true;
+		}
 	};
-	exports.utf32be = {
-		type: "_utf32",
-		isLE: false
+	/** UTF-32BE codec. */
+	var Utf32BECodec = class {
+		createEncoder(options, iconv) {
+			return new Utf32Encoder(iconv.backend, false);
+		}
+		createDecoder(options, iconv) {
+			return new Utf32Decoder(false, iconv.defaultCharUnicode.charCodeAt(0), !!(options && options.fatal));
+		}
+		get bomAware() {
+			return true;
+		}
 	};
-	exports.ucs4le = "utf32le";
-	exports.ucs4be = "utf32be";
-	Utf32Codec.prototype.encoder = Utf32Encoder;
-	Utf32Codec.prototype.decoder = Utf32Decoder;
-	function Utf32Encoder(options, codec) {
-		this.isLE = codec.isLE;
-		this.highSurrogate = 0;
-	}
-	Utf32Encoder.prototype.write = function(str) {
-		var src = Buffer.from(str, "ucs2");
-		var dst = Buffer.alloc(src.length * 2);
-		var write32 = this.isLE ? dst.writeUInt32LE : dst.writeUInt32BE;
-		var offset = 0;
-		for (var i = 0; i < src.length; i += 2) {
-			var code = src.readUInt16LE(i);
-			var isHighSurrogate = code >= 55296 && code < 56320;
-			var isLowSurrogate = code >= 56320 && code < 57344;
-			if (this.highSurrogate) if (isHighSurrogate || !isLowSurrogate) {
-				write32.call(dst, this.highSurrogate, offset);
-				offset += 4;
-			} else {
-				var codepoint = (this.highSurrogate - 55296 << 10 | code - 56320) + 65536;
-				write32.call(dst, codepoint, offset);
-				offset += 4;
-				this.highSurrogate = 0;
-				continue;
+	/**
+	* UTF-32 encoder. Applies the UTF-32 encoding form (Unicode Standard, Section 3.9, definition D90:
+	* each Unicode scalar value -> one 32-bit code unit). The input is UTF-16, so per code unit:
+	*  1. A high surrogate followed by a low surrogate is combined into its supplementary scalar value.
+	*  2. A lone (unpaired) surrogate is not a scalar value (definition D76), so it is replaced with
+	*     U+FFFD, keeping the output well-formed UTF-32.
+	*  3. Any other code unit is already a scalar value and is written unchanged.
+	* Each scalar value is written as one 32-bit code unit (little-endian; big-endian is byte-swapped at
+	* the end). Stateful across writes: a high surrogate at the end of one write() is held for the next.
+	*/
+	var Utf32Encoder = class {
+		/**
+		* @param {object} backend The iconv-lite backend (bytesToResult turns bytes into a Buffer/Uint8Array).
+		* @param {boolean} isLE Little-endian when true.
+		*/
+		constructor(backend, isLE) {
+			this.backend = backend;
+			this.isLE = isLE;
+			this.highSurrogate = 0;
+		}
+		/**
+		* @param {string} str
+		* @returns {Buffer|Uint8Array}
+		*/
+		write(str) {
+			const length = str.length;
+			const out = new Uint8Array(length * 4 + 4);
+			const codepoints = new Uint32Array(out.buffer);
+			let pos = 0;
+			for (let index = 0; index < length; index++) {
+				const code = str.charCodeAt(index);
+				if (this.highSurrogate !== 0) {
+					if (code >= 56320 && code <= 57343) {
+						codepoints[pos++] = (this.highSurrogate - 55296 << 10 | code - 56320) + 65536;
+						this.highSurrogate = 0;
+						continue;
+					}
+					codepoints[pos++] = REPLACEMENT;
+					this.highSurrogate = 0;
+				}
+				if (code >= 55296 && code <= 56319) this.highSurrogate = code;
+				else if (code >= 56320 && code <= 57343) codepoints[pos++] = REPLACEMENT;
+				else codepoints[pos++] = code;
 			}
-			if (isHighSurrogate) this.highSurrogate = code;
-			else {
-				write32.call(dst, code, offset);
-				offset += 4;
-				this.highSurrogate = 0;
+			const byteLength = pos * 4;
+			if (!this.isLE) swap32(out, byteLength);
+			return this.backend.bytesToResult(out, byteLength);
+		}
+		/** @returns {Buffer|Uint8Array|undefined} U+FFFD for a high surrogate left unpaired at end of input. */
+		end() {
+			if (this.highSurrogate === 0) return;
+			const out = new Uint8Array(4);
+			new Uint32Array(out.buffer)[0] = REPLACEMENT;
+			if (!this.isLE) swap32(out, 4);
+			this.highSurrogate = 0;
+			return this.backend.bytesToResult(out, 4);
+		}
+	};
+	/**
+	* UTF-32 decoder. Inverts the UTF-32 encoding form (Unicode Standard, Section 3.9, definition D90).
+	* Per 32-bit code unit:
+	*  1. Read its numeric value.
+	*  2. Validate it is a Unicode scalar value (definition D76: 0..D7FF or E000..10FFFF). A surrogate
+	*     code point (D800..DFFF) or a value above 0x10FFFF is ill-formed -> replaced with the bad-char
+	*     (U+FFFD by default), or throws when `fatal`. A code unit truncated at end of input is treated
+	*     the same way.
+	*  3. Emit the scalar value as UTF-16 (a surrogate pair for supplementary code points).
+	* Streaming: a code unit split across a chunk boundary is buffered (`overflow`) and finished on the
+	* next write.
+	*/
+	var Utf32Decoder = class {
+		/**
+		* @param {boolean} isLE Little-endian when true.
+		* @param {number} badChar Code unit emitted for ill-formed input.
+		* @param {boolean} fatal Throw on ill-formed input instead of emitting the bad-char.
+		*/
+		constructor(isLE, badChar, fatal) {
+			this.isLE = isLE;
+			this.badChar = badChar;
+			this.fatal = fatal;
+			this.overflow = [];
+			this.units = new Uint16Array(0);
+		}
+		/**
+		* @param {Buffer|Uint8Array} src
+		* @returns {string}
+		*/
+		write(src) {
+			if (src.length === 0) return "";
+			const isLE = this.isLE;
+			const overflow = this.overflow;
+			const badChar = this.badChar;
+			const fatal = this.fatal;
+			const maxUnits = ((overflow.length + src.length >> 2) + 1) * 2;
+			if (this.units.length < maxUnits) this.units = new Uint16Array(maxUnits);
+			const units = this.units;
+			let pos = 0;
+			let i = 0;
+			if (overflow.length > 0) {
+				for (; i < src.length && overflow.length < 4; i++) overflow.push(src[i]);
+				if (overflow.length === 4) {
+					pos = pushCodepoint(units, pos, readCodepoint(overflow, 0, isLE), badChar, fatal);
+					overflow.length = 0;
+				}
 			}
+			const count = src.length - i >> 2;
+			if (isLE && count > 0 && (src.byteOffset + i) % 4 === 0) {
+				const codepoints = new Uint32Array(src.buffer, src.byteOffset + i, count);
+				for (let k = 0; k < count; k++) pos = pushCodepoint(units, pos, codepoints[k], badChar, fatal);
+				i += count * 4;
+			} else for (; i < src.length - 3; i += 4) pos = pushCodepoint(units, pos, readCodepoint(src, i, isLE), badChar, fatal);
+			for (; i < src.length; i++) overflow.push(src[i]);
+			return stringFromUnits(units, pos);
 		}
-		if (offset < dst.length) dst = dst.slice(0, offset);
-		return dst;
+		/** @returns {string|undefined} U+FFFD for a code point left truncated at end of input (or throws when fatal). */
+		end() {
+			if (this.overflow.length === 0) return;
+			this.overflow.length = 0;
+			if (this.fatal) throw new Error("Truncated UTF-32 code unit at end of input");
+			return String.fromCharCode(this.badChar);
+		}
 	};
-	Utf32Encoder.prototype.end = function() {
-		if (!this.highSurrogate) return;
-		var buf = Buffer.alloc(4);
-		if (this.isLE) buf.writeUInt32LE(this.highSurrogate, 0);
-		else buf.writeUInt32BE(this.highSurrogate, 0);
-		this.highSurrogate = 0;
-		return buf;
-	};
-	function Utf32Decoder(options, codec) {
-		this.isLE = codec.isLE;
-		this.badChar = codec.iconv.defaultCharUnicode.charCodeAt(0);
-		this.overflow = [];
+	/**
+	* Reverses the byte order of each 4-byte group in `out[0, byteLength)` in place. The encoder builds
+	* code points as native little-endian (via a Uint32Array view); this turns them into big-endian.
+	* @param {Uint8Array} out
+	* @param {number} byteLength A multiple of 4.
+	*/
+	function swap32(out, byteLength) {
+		for (let pos = 0; pos < byteLength; pos += 4) {
+			const b0 = out[pos];
+			const b1 = out[pos + 1];
+			out[pos] = out[pos + 3];
+			out[pos + 1] = out[pos + 2];
+			out[pos + 2] = b1;
+			out[pos + 3] = b0;
+		}
 	}
-	Utf32Decoder.prototype.write = function(src) {
-		if (src.length === 0) return "";
-		var i = 0;
-		var codepoint = 0;
-		var dst = Buffer.alloc(src.length + 4);
-		var offset = 0;
-		var isLE = this.isLE;
-		var overflow = this.overflow;
-		var badChar = this.badChar;
-		if (overflow.length > 0) {
-			for (; i < src.length && overflow.length < 4; i++) overflow.push(src[i]);
-			if (overflow.length === 4) {
-				if (isLE) codepoint = overflow[i] | overflow[i + 1] << 8 | overflow[i + 2] << 16 | overflow[i + 3] << 24;
-				else codepoint = overflow[i + 3] | overflow[i + 2] << 8 | overflow[i + 1] << 16 | overflow[i] << 24;
-				overflow.length = 0;
-				offset = _writeCodepoint(dst, offset, codepoint, badChar);
+	/**
+	* Reads a 4-byte code point (unsigned, 0..0xFFFFFFFF) from a byte source in the given endianness. The
+	* high byte is added with `* 0x1000000` rather than `<< 24` to avoid the signed-int32 wrap of `|`.
+	* @param {Uint8Array|number[]} src
+	* @param {number} pos
+	* @param {boolean} isLE
+	* @returns {number}
+	*/
+	function readCodepoint(src, pos, isLE) {
+		if (isLE) return (src[pos] | src[pos + 1] << 8 | src[pos + 2] << 16) + src[pos + 3] * 16777216;
+		return (src[pos + 3] | src[pos + 2] << 8 | src[pos + 1] << 16) + src[pos] * 16777216;
+	}
+	/**
+	* Decode steps 2 and 3: validate one code point as a Unicode scalar value (definition D76) and append
+	* its UTF-16 form. A surrogate code point (D800..DFFF) or a value above 0x10FFFF is not a scalar value,
+	* so it becomes `badChar`, or throws when `fatal`. (Code points are read unsigned, so a value with the
+	* high bit set is just > 0x10FFFF.)
+	* @param {Uint16Array} units
+	* @param {number} pos Current code-unit write position.
+	* @param {number} codepoint An unsigned value in 0..0xFFFFFFFF.
+	* @param {number} badChar
+	* @param {boolean} fatal
+	* @returns {number} The new code-unit write position.
+	*/
+	function pushCodepoint(units, pos, codepoint, badChar, fatal) {
+		if (codepoint < 55296) {
+			units[pos++] = codepoint;
+			return pos;
+		}
+		if (codepoint > 1114111 || codepoint <= 57343) {
+			if (fatal) throw new Error("Invalid UTF-32 code unit: 0x" + codepoint.toString(16));
+			units[pos++] = badChar;
+			return pos;
+		}
+		if (codepoint > 65535) {
+			const offset = codepoint - 65536;
+			units[pos++] = 55296 | offset >> 10;
+			units[pos++] = 56320 | offset & 1023;
+		} else units[pos++] = codepoint;
+		return pos;
+	}
+	/**
+	* Builds a string from the first `length` UTF-16 code units of a Uint16Array.
+	* @param {Uint16Array} units
+	* @param {number} length Number of valid code units in `units`.
+	* @returns {string}
+	*/
+	function stringFromUnits(units, length) {
+		if (length >= TEXT_DECODER_MIN_UNITS) return utf16leDecoder.decode(new Uint8Array(units.buffer, units.byteOffset, length * 2));
+		let result = "";
+		for (let offset = 0; offset < length; offset += CHARS_CHUNK) result += String.fromCharCode.apply(null, units.subarray(offset, Math.min(offset + CHARS_CHUNK, length)));
+		return result;
+	}
+	/**
+	* UTF-32 auto codec. The encoder defaults to UTF-32LE and prepends a BOM (override with addBOM: false
+	* or defaultEncoding). The decoder picks UTF-32LE vs UTF-32BE from the BOM, falling back to a
+	* space/zero heuristic, defaulting to UTF-32LE.
+	* Decoder default can be changed: iconv.decode(buf, 'utf32', { defaultEncoding: 'utf-32be' }).
+	*/
+	var Utf32Codec = class {
+		createEncoder(options, iconv) {
+			options = options || {};
+			if (options.addBOM === void 0) options.addBOM = true;
+			return iconv.getEncoder(options.defaultEncoding || "utf-32le", options);
+		}
+		createDecoder(options, iconv) {
+			return new Utf32AutoDecoder(options, iconv);
+		}
+	};
+	var Utf32AutoDecoder = class {
+		constructor(options, iconv) {
+			this.decoder = null;
+			this.initialBufs = [];
+			this.initialBufsLen = 0;
+			this.options = options || {};
+			this.iconv = iconv;
+		}
+		write(buf) {
+			if (!this.decoder) {
+				this.initialBufs.push(buf);
+				this.initialBufsLen += buf.length;
+				if (this.initialBufsLen < 32) return "";
+				return this._chooseDecoder();
 			}
+			return this.decoder.write(buf);
 		}
-		for (; i < src.length - 3; i += 4) {
-			if (isLE) codepoint = src[i] | src[i + 1] << 8 | src[i + 2] << 16 | src[i + 3] << 24;
-			else codepoint = src[i + 3] | src[i + 2] << 8 | src[i + 1] << 16 | src[i] << 24;
-			offset = _writeCodepoint(dst, offset, codepoint, badChar);
+		end() {
+			if (this.decoder) return this.decoder.end();
+			const res = this._chooseDecoder();
+			const trail = this.decoder.end();
+			return trail ? res + trail : res;
 		}
-		for (; i < src.length; i++) overflow.push(src[i]);
-		return dst.slice(0, offset).toString("ucs2");
-	};
-	function _writeCodepoint(dst, offset, codepoint, badChar) {
-		if (codepoint < 0 || codepoint > 1114111) codepoint = badChar;
-		if (codepoint >= 65536) {
-			codepoint -= 65536;
-			var high = 55296 | codepoint >> 10;
-			dst[offset++] = high & 255;
-			dst[offset++] = high >> 8;
-			var codepoint = 56320 | codepoint & 1023;
-		}
-		dst[offset++] = codepoint & 255;
-		dst[offset++] = codepoint >> 8;
-		return offset;
-	}
-	Utf32Decoder.prototype.end = function() {
-		this.overflow.length = 0;
-	};
-	exports.utf32 = Utf32AutoCodec;
-	exports.ucs4 = "utf32";
-	function Utf32AutoCodec(options, iconv) {
-		this.iconv = iconv;
-	}
-	Utf32AutoCodec.prototype.encoder = Utf32AutoEncoder;
-	Utf32AutoCodec.prototype.decoder = Utf32AutoDecoder;
-	function Utf32AutoEncoder(options, codec) {
-		options = options || {};
-		if (options.addBOM === void 0) options.addBOM = true;
-		this.encoder = codec.iconv.getEncoder(options.defaultEncoding || "utf-32le", options);
-	}
-	Utf32AutoEncoder.prototype.write = function(str) {
-		return this.encoder.write(str);
-	};
-	Utf32AutoEncoder.prototype.end = function() {
-		return this.encoder.end();
-	};
-	function Utf32AutoDecoder(options, codec) {
-		this.decoder = null;
-		this.initialBufs = [];
-		this.initialBufsLen = 0;
-		this.options = options || {};
-		this.iconv = codec.iconv;
-	}
-	Utf32AutoDecoder.prototype.write = function(buf) {
-		if (!this.decoder) {
-			this.initialBufs.push(buf);
-			this.initialBufsLen += buf.length;
-			if (this.initialBufsLen < 32) return "";
-			var encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
+		_chooseDecoder() {
+			const encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
 			this.decoder = this.iconv.getDecoder(encoding, this.options);
-			var resStr = "";
-			for (var i = 0; i < this.initialBufs.length; i++) resStr += this.decoder.write(this.initialBufs[i]);
+			const res = this.initialBufs.reduce((acc, buf) => acc + this.decoder.write(buf), "");
 			this.initialBufs.length = this.initialBufsLen = 0;
-			return resStr;
+			return res;
 		}
-		return this.decoder.write(buf);
 	};
-	Utf32AutoDecoder.prototype.end = function() {
-		if (!this.decoder) {
-			var encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
-			this.decoder = this.iconv.getDecoder(encoding, this.options);
-			var resStr = "";
-			for (var i = 0; i < this.initialBufs.length; i++) resStr += this.decoder.write(this.initialBufs[i]);
-			var trail = this.decoder.end();
-			if (trail) resStr += trail;
-			this.initialBufs.length = this.initialBufsLen = 0;
-			return resStr;
-		}
-		return this.decoder.end();
-	};
+	/**
+	* Detects UTF-32 endianness from the leading bytes: a BOM if present, otherwise a heuristic counting
+	* how many code units look like valid BMP characters when read as LE vs BE.
+	* @param {Array<Buffer|Uint8Array>} bufs
+	* @param {string} [defaultEncoding]
+	* @returns {string} "utf-32le" or "utf-32be".
+	*/
 	function detectEncoding(bufs, defaultEncoding) {
-		var b = [];
-		var charsProcessed = 0;
-		var invalidLE = 0;
-		var invalidBE = 0;
-		var bmpCharsLE = 0;
-		var bmpCharsBE = 0;
-		outerLoop: for (var i = 0; i < bufs.length; i++) {
-			var buf = bufs[i];
-			for (var j = 0; j < buf.length; j++) {
+		const b = [];
+		let charsProcessed = 0;
+		let invalidLE = 0;
+		let invalidBE = 0;
+		let bmpCharsLE = 0;
+		let bmpCharsBE = 0;
+		outerLoop: for (let i = 0; i < bufs.length; i++) {
+			const buf = bufs[i];
+			for (let j = 0; j < buf.length; j++) {
 				b.push(buf[j]);
 				if (b.length === 4) {
 					if (charsProcessed === 0) {
@@ -468,110 +576,128 @@ var require_utf32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (bmpCharsBE - invalidBE < bmpCharsLE - invalidLE) return "utf-32le";
 		return defaultEncoding || "utf-32le";
 	}
+	exports.utf32le = Utf32LECodec;
+	exports.utf32be = Utf32BECodec;
+	exports.ucs4le = "utf32le";
+	exports.ucs4be = "utf32be";
+	exports.utf32 = Utf32Codec;
+	exports.ucs4 = "utf32";
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/utf16.js
 var require_utf16 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = require_safer().Buffer;
-	exports.utf16be = Utf16BECodec;
-	function Utf16BECodec() {}
-	Utf16BECodec.prototype.encoder = Utf16BEEncoder;
-	Utf16BECodec.prototype.decoder = Utf16BEDecoder;
-	Utf16BECodec.prototype.bomAware = true;
-	function Utf16BEEncoder() {}
-	Utf16BEEncoder.prototype.write = function(str) {
-		var buf = Buffer.from(str, "ucs2");
-		for (var i = 0; i < buf.length; i += 2) {
-			var tmp = buf[i];
-			buf[i] = buf[i + 1];
-			buf[i + 1] = tmp;
+	var Utf16LECodec = class {
+		createEncoder(options, iconv) {
+			return new Utf16LEEncoder(iconv.backend);
 		}
-		return buf;
-	};
-	Utf16BEEncoder.prototype.end = function() {};
-	function Utf16BEDecoder() {
-		this.overflowByte = -1;
-	}
-	Utf16BEDecoder.prototype.write = function(buf) {
-		if (buf.length == 0) return "";
-		var buf2 = Buffer.alloc(buf.length + 1);
-		var i = 0;
-		var j = 0;
-		if (this.overflowByte !== -1) {
-			buf2[0] = buf[0];
-			buf2[1] = this.overflowByte;
-			i = 1;
-			j = 2;
+		createDecoder(options, iconv) {
+			return new Utf16EndianDecoder("utf-16le", options);
 		}
-		for (; i < buf.length - 1; i += 2, j += 2) {
-			buf2[j] = buf[i + 1];
-			buf2[j + 1] = buf[i];
+		get bomAware() {
+			return true;
 		}
-		this.overflowByte = i == buf.length - 1 ? buf[buf.length - 1] : -1;
-		return buf2.slice(0, j).toString("ucs2");
 	};
-	Utf16BEDecoder.prototype.end = function() {
-		this.overflowByte = -1;
+	var Utf16BECodec = class {
+		createEncoder(options, iconv) {
+			return new Utf16BEEncoder(iconv.backend);
+		}
+		createDecoder(options, iconv) {
+			return new Utf16EndianDecoder("utf-16be", options);
+		}
+		get bomAware() {
+			return true;
+		}
 	};
-	exports.utf16 = Utf16Codec;
-	function Utf16Codec(codecOptions, iconv) {
-		this.iconv = iconv;
-	}
-	Utf16Codec.prototype.encoder = Utf16Encoder;
-	Utf16Codec.prototype.decoder = Utf16Decoder;
-	function Utf16Encoder(options, codec) {
-		options = options || {};
-		if (options.addBOM === void 0) options.addBOM = true;
-		this.encoder = codec.iconv.getEncoder("utf-16le", options);
-	}
-	Utf16Encoder.prototype.write = function(str) {
-		return this.encoder.write(str);
+	var Utf16LEEncoder = class {
+		constructor(backend) {
+			this.backend = backend;
+		}
+		write(str) {
+			const bytes = new Uint8Array(str.length * 2);
+			const chars = new Uint16Array(bytes.buffer, 0, str.length);
+			for (let i = 0; i < str.length; i++) chars[i] = str.charCodeAt(i);
+			return this.backend.bytesToResult(bytes, bytes.length);
+		}
+		end() {}
 	};
-	Utf16Encoder.prototype.end = function() {
-		return this.encoder.end();
+	var Utf16BEEncoder = class {
+		constructor(backend) {
+			this.backend = backend;
+		}
+		write(str) {
+			const bytes = new Uint8Array(str.length * 2);
+			let pos = 0;
+			for (let i = 0; i < str.length; i++) {
+				const char = str.charCodeAt(i);
+				bytes[pos++] = char >> 8;
+				bytes[pos++] = char & 255;
+			}
+			return this.backend.bytesToResult(bytes, pos);
+		}
+		end() {}
 	};
-	function Utf16Decoder(options, codec) {
-		this.decoder = null;
-		this.initialBufs = [];
-		this.initialBufsLen = 0;
-		this.options = options || {};
-		this.iconv = codec.iconv;
-	}
-	Utf16Decoder.prototype.write = function(buf) {
-		if (!this.decoder) {
-			this.initialBufs.push(buf);
-			this.initialBufsLen += buf.length;
-			if (this.initialBufsLen < 16) return "";
-			var encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
+	var Utf16EndianDecoder = class {
+		constructor(label, options) {
+			this.decoder = new TextDecoder(label, {
+				ignoreBOM: true,
+				fatal: !!(options && options.fatal)
+			});
+		}
+		write(buf) {
+			return this.decoder.decode(buf, { stream: true });
+		}
+		end() {
+			const res = this.decoder.decode();
+			return res.length > 0 ? res : void 0;
+		}
+	};
+	var Utf16Codec = class {
+		createEncoder(options, iconv) {
+			options = options || {};
+			if (options.addBOM === void 0) options.addBOM = true;
+			return iconv.getEncoder("utf-16le", options);
+		}
+		createDecoder(options, iconv) {
+			return new Utf16Decoder(options, iconv);
+		}
+	};
+	var Utf16Decoder = class {
+		constructor(options, iconv) {
+			this.decoder = null;
+			this.initialBufs = [];
+			this.initialBufsLen = 0;
+			this.options = options || {};
+			this.iconv = iconv;
+		}
+		write(buf) {
+			if (!this.decoder) {
+				this.initialBufs.push(buf);
+				this.initialBufsLen += buf.length;
+				if (this.initialBufsLen < 16) return "";
+				return this._detectEndiannessAndSetDecoder();
+			}
+			return this.decoder.write(buf);
+		}
+		end() {
+			if (!this.decoder) return this._detectEndiannessAndSetDecoder() + (this.decoder.end() || "");
+			return this.decoder.end();
+		}
+		_detectEndiannessAndSetDecoder() {
+			const encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
 			this.decoder = this.iconv.getDecoder(encoding, this.options);
-			var resStr = "";
-			for (var i = 0; i < this.initialBufs.length; i++) resStr += this.decoder.write(this.initialBufs[i]);
+			const resStr = this.initialBufs.reduce((a, b) => a + this.decoder.write(b), "");
 			this.initialBufs.length = this.initialBufsLen = 0;
 			return resStr;
 		}
-		return this.decoder.write(buf);
-	};
-	Utf16Decoder.prototype.end = function() {
-		if (!this.decoder) {
-			var encoding = detectEncoding(this.initialBufs, this.options.defaultEncoding);
-			this.decoder = this.iconv.getDecoder(encoding, this.options);
-			var resStr = "";
-			for (var i = 0; i < this.initialBufs.length; i++) resStr += this.decoder.write(this.initialBufs[i]);
-			var trail = this.decoder.end();
-			if (trail) resStr += trail;
-			this.initialBufs.length = this.initialBufsLen = 0;
-			return resStr;
-		}
-		return this.decoder.end();
 	};
 	function detectEncoding(bufs, defaultEncoding) {
-		var b = [];
-		var charsProcessed = 0;
-		var asciiCharsLE = 0;
-		var asciiCharsBE = 0;
-		outerLoop: for (var i = 0; i < bufs.length; i++) {
-			var buf = bufs[i];
-			for (var j = 0; j < buf.length; j++) {
+		const b = [];
+		let charsProcessed = 0;
+		let asciiCharsLE = 0;
+		let asciiCharsBE = 0;
+		outerLoop: for (let i = 0; i < bufs.length; i++) {
+			const buf = bufs[i];
+			for (let j = 0; j < buf.length; j++) {
 				b.push(buf[j]);
 				if (b.length === 2) {
 					if (charsProcessed === 0) {
@@ -590,242 +716,616 @@ var require_utf16 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (asciiCharsBE < asciiCharsLE) return "utf-16le";
 		return defaultEncoding || "utf-16le";
 	}
+	exports.utf16le = Utf16LECodec;
+	exports.ucs2 = "utf16le";
+	exports.unicode = "utf16le";
+	exports.csunicode = "utf16le";
+	exports.iso10646ucs2 = "utf16le";
+	exports.unicodefeff = "utf16le";
+	exports.utf16be = Utf16BECodec;
+	exports.unicodefffe = "utf16be";
+	exports.utf16 = Utf16Codec;
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/utf7.js
 var require_utf7 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = require_safer().Buffer;
+	/**
+	* UTF-7 (RFC 2152) and UTF-7-IMAP / Modified UTF-7 (RFC 3501) codecs.
+	*
+	* Both codecs are self-contained: they don't go through the iconv-lite backend for the actual
+	* conversion, only native APIs shared by Node and browsers. Encoding uses a small hand-rolled bit
+	* accumulator for the Base64 (no Buffer); decoding hands each Base64 run to atob() and turns direct
+	* runs into substrings via TextDecoder. The only backend touch left is the encoder's final
+	* "bytes -> result" step, so that encoding keeps returning a Buffer in Node (like the utf16 codec).
+	*
+	* @see https://tools.ietf.org/html/rfc2152
+	* @see http://tools.ietf.org/html/rfc3501#section-5.1.3
+	*/
+	const PLUS = 43;
+	const MINUS = 45;
+	const AMP = 38;
+	/** Standard Base64 alphabet. @type {string} */
+	const BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	/** UTF-7-IMAP Base64 alphabet (uses ',' instead of '/'). @type {string} */
+	const BASE64_IMAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+,";
+	/**
+	* Builds the encode table: Base64 value (0..63) -> output byte (ASCII code of the Base64 char).
+	* @param {string} alphabet The 64-char Base64 alphabet.
+	* @returns {Uint8Array}
+	*/
+	function buildBytes(alphabet) {
+		const bytes = new Uint8Array(64);
+		for (let value = 0; value < 64; value++) bytes[value] = alphabet.charCodeAt(value);
+		return bytes;
+	}
+	/**
+	* Builds the decode table: input byte -> Base64 value (0..63), or -1 if the byte is not Base64.
+	* @param {string} alphabet The 64-char Base64 alphabet.
+	* @returns {Int8Array}
+	*/
+	function buildInv(alphabet) {
+		const inv = new Int8Array(256).fill(-1);
+		for (let value = 0; value < alphabet.length; value++) inv[alphabet.charCodeAt(value)] = value;
+		return inv;
+	}
+	const BASE64_BYTES = buildBytes(BASE64);
+	const BASE64_IMAP_BYTES = buildBytes(BASE64_IMAP);
+	const INV = buildInv(BASE64);
+	const INV_IMAP = buildInv(BASE64_IMAP);
+	INV_IMAP["/".charCodeAt(0)] = 63;
+	/**
+	* Lookup (indexed by char code < 128) of the chars UTF-7 represents directly (un-encoded), per
+	* RFC 2152: Set D (mandatory), Set O (optional but allowed direct), and whitespace (SP, TAB, CR,
+	* LF). Everything else is shifted into Base64: '+' (the shift char), '\', '~', and all non-ASCII.
+	* @type {Uint8Array}
+	*/
+	const UTF7_DIRECT = new Uint8Array(128);
+	const UTF7_DIRECT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'(),-./:?!\"#$%&*;<=>@[]^_`{|} 	\n\r";
+	for (let index = 0; index < 95; index++) UTF7_DIRECT[UTF7_DIRECT_CHARS.charCodeAt(index)] = 1;
+	/**
+	* Whether `code` is a UTF-7 direct char (copied verbatim rather than Base64-encoded).
+	* @param {number} code A UTF-16 code unit.
+	* @returns {boolean}
+	*/
+	function utf7IsDirect(code) {
+		return code < 128 && UTF7_DIRECT[code] === 1;
+	}
+	/**
+	* Regex matching the first non-direct char, derived from the same set so there's no second source
+	* of truth. Used by the encoder to skip over direct runs in one native (C++) scan instead of a
+	* per-char JS loop. The class metacharacters ] \ ^ - are escaped for use inside [^...].
+	* @type {RegExp}
+	*/
+	const UTF7_NONDIRECT = new RegExp("[^" + UTF7_DIRECT_CHARS.replace(/[\]\\^-]/g, "\\$&") + "]", "g");
+	/**
+	* Shared single-byte TextDecoder used to view the input as one char per byte. (The WHATWG "latin1"
+	* label is windows-1252, single-byte; ASCII bytes < 0x80 decode 1:1, which is all the parser relies
+	* on: direct runs are ASCII substrings, and Base64 runs are ASCII handed to atob().)
+	* @type {TextDecoder}
+	*/
+	const latin1Decoder = new TextDecoder("latin1");
+	/**
+	* Turns decoded UTF-16 code units (held in a Uint16Array, native little-endian) into a string in one
+	* native call. Only used for runs with no surrogate (where it equals the verbatim conversion), since
+	* it would otherwise replace a lone surrogate with U+FFFD instead of passing it through.
+	* @type {TextDecoder}
+	*/
+	const utf16leDecoder = new TextDecoder("utf-16le", { ignoreBOM: true });
+	/** Above this many code units the native TextDecoder beats fromCharCode; below it the per-call setup costs more. */
+	const TEXT_DECODER_MIN_UNITS = 64;
+	/**
+	* Decodes UTF-16BE bytes (no surrogate normalization issues since the caller only routes
+	* surrogate-free runs here). Paired with Uint8Array.fromBase64 it does base64 -> bytes -> string
+	* entirely natively, with no per-code-unit JS loop.
+	* @type {TextDecoder}
+	*/
+	const utf16beDecoder = new TextDecoder("utf-16be", { ignoreBOM: true });
+	/** Whether the runtime has Uint8Array.fromBase64 (Node 25+, modern browsers). */
+	const HAS_FROM_BASE64 = typeof Uint8Array.fromBase64 === "function";
+	/** Above this many code units the native fromBase64 + utf-16be path (no JS pairs loop) beats atob. */
+	const FROM_BASE64_MIN_UNITS = 128;
+	/**
+	* Below this many code units a hand-rolled inline decode beats the per-run setup of atob/TextDecoder.
+	* This is the common case: a short Base64 run in otherwise-ASCII text (mail headers, IMAP folders).
+	*/
+	const SMALL_RUN_MAX_UNITS = 40;
+	/** Matches any non-ASCII char (a byte >= 0x80): invalid while unshifted, so replaced with U+FFFD. @type {RegExp} */
+	const NON_ASCII = /[\u0080-\uffff]/g;
+	/** Max args for one String.fromCharCode.apply() before risking a call-stack overflow. */
+	const CHARS_CHUNK = 8192;
+	/**
+	* Builds a string from the first `length` code units of a Uint16Array, in stack-safe chunks.
+	* @param {Uint16Array} units
+	* @param {number} length Number of valid code units in `units`.
+	* @returns {string}
+	*/
+	function charsFromUnits(units, length) {
+		let result = "";
+		for (let offset = 0; offset < length; offset += CHARS_CHUNK) result += String.fromCharCode.apply(null, units.subarray(offset, Math.min(offset + CHARS_CHUNK, length)));
+		return result;
+	}
+	/** Shared TextEncoder to bulk-copy long direct (ASCII) runs into the output in one native call. @type {TextEncoder} */
+	const asciiEncoder = new TextEncoder();
+	/** Below this run length, a per-char copy is cheaper than the slice()+encodeInto() setup. */
+	const DIRECT_BULK_MIN = 16;
+	/** Whether the runtime has Uint8Array.prototype.toBase64 (Node 25+, modern browsers). */
+	const HAS_TO_BASE64 = typeof Uint8Array.prototype.toBase64 === "function";
+	/** Above this many code units, native toBase64 (no JS sextet loop) beats the bit accumulator. */
+	const TO_BASE64_MIN_UNITS = 64;
+	/** Reused UTF-16BE byte buffer feeding toBase64 on the encode fast path; grows lazily. @type {Uint8Array} */
+	let base64Scratch = new Uint8Array(0);
+	/**
+	* Emits the final partial Base64 sextet (the leftover < 6 bits, zero-padded).
+	* @param {Uint8Array} out Output buffer.
+	* @param {number} pos Current write position.
+	* @param {number} bits Bit accumulator.
+	* @param {number} nbits Number of valid bits in the accumulator.
+	* @param {Uint8Array} bytes Base64 value -> byte table.
+	* @returns {number} The new write position.
+	*/
+	function flushBase64Tail(out, pos, bits, nbits, bytes) {
+		if (nbits > 0) out[pos++] = bytes[bits << 6 - nbits & 63];
+		return pos;
+	}
+	/**
+	* Copies the direct-char run str[from, to) into `out` verbatim. Long runs go through TextEncoder in
+	* one native call; short ones are cheaper to copy char by char.
+	* @param {string} str
+	* @param {number} from Inclusive start index.
+	* @param {number} to Exclusive end index.
+	* @param {Uint8Array} out Output buffer.
+	* @param {number} pos Current write position.
+	* @returns {number} The new write position.
+	*/
+	function copyDirectRun(str, from, to, out, pos) {
+		if (to - from >= DIRECT_BULK_MIN) {
+			const source = from === 0 && to === str.length ? str : str.slice(from, to);
+			return pos + asciiEncoder.encodeInto(source, out.subarray(pos)).written;
+		}
+		for (let index = from; index < to; index++) out[pos++] = str.charCodeAt(index);
+		return pos;
+	}
+	/**
+	* Encodes the non-direct run str[from, to) as "+<base64>-" (UTF-16BE -> standard Base64). Only ever
+	* called for plain UTF-7 (standard alphabet); UTF-7-IMAP has its own streaming encoder with ','.
+	* @param {string} str
+	* @param {number} from Inclusive start index.
+	* @param {number} to Exclusive end index.
+	* @param {Uint8Array} out Output buffer.
+	* @param {number} pos Current write position.
+	* @param {Uint8Array} bytes Base64 value -> byte table.
+	* @returns {number} The new write position.
+	*/
+	function encodeBase64Run(str, from, to, out, pos, bytes) {
+		if (HAS_TO_BASE64 && to - from >= TO_BASE64_MIN_UNITS) {
+			const byteCount = (to - from) * 2;
+			if (base64Scratch.length < byteCount) base64Scratch = new Uint8Array(byteCount);
+			let bytePos = 0;
+			for (let index = from; index < to; index++) {
+				const code = str.charCodeAt(index);
+				base64Scratch[bytePos++] = code >> 8;
+				base64Scratch[bytePos++] = code & 255;
+			}
+			out[pos++] = PLUS;
+			const view = byteCount === base64Scratch.length ? base64Scratch : base64Scratch.subarray(0, byteCount);
+			pos += asciiEncoder.encodeInto(view.toBase64({ omitPadding: true }), out.subarray(pos)).written;
+			out[pos++] = MINUS;
+			return pos;
+		}
+		out[pos++] = PLUS;
+		let bits = 0;
+		let nbits = 0;
+		for (let index = from; index < to; index++) {
+			bits = bits << 16 | str.charCodeAt(index);
+			nbits += 16;
+			while (nbits >= 6) {
+				nbits -= 6;
+				out[pos++] = bytes[bits >> nbits & 63];
+				bits &= (1 << nbits) - 1;
+			}
+		}
+		pos = flushBase64Tail(out, pos, bits, nbits, bytes);
+		out[pos++] = MINUS;
+		return pos;
+	}
+	/** UTF-7 codec (RFC 2152). */
+	var Utf7Codec = class {
+		/**
+		* @param {object} options
+		* @param {object} iconv The iconv-lite instance (provides `backend`).
+		* @returns {Utf7Encoder}
+		*/
+		createEncoder(options, iconv) {
+			return new Utf7Encoder(iconv.backend);
+		}
+		/**
+		* @param {object} options
+		* @param {object} iconv
+		* @returns {Utf7Decoder}
+		*/
+		createDecoder(options, iconv) {
+			return new Utf7Decoder(PLUS, "+", INV, false);
+		}
+		/** @returns {boolean} */
+		get bomAware() {
+			return true;
+		}
+	};
+	/**
+	* UTF-7-IMAP / Modified UTF-7 codec (RFC 3501). Differences from plain UTF-7:
+	*  - Base64 part is started by "&" instead of "+".
+	*  - Direct characters are 0x20-0x7E, except "&" (0x26).
+	*  - In Base64, "," is used instead of "/".
+	*  - Base64 must not be used to represent direct characters.
+	*  - No implicit shift back from Base64 (always ends with '-').
+	*/
+	var Utf7IMAPCodec = class {
+		/**
+		* @param {object} options
+		* @param {object} iconv
+		* @returns {Utf7IMAPEncoder}
+		*/
+		createEncoder(options, iconv) {
+			return new Utf7IMAPEncoder(iconv.backend);
+		}
+		/**
+		* @param {object} options
+		* @param {object} iconv
+		* @returns {Utf7Decoder}
+		*/
+		createDecoder(options, iconv) {
+			return new Utf7Decoder(AMP, "&", INV_IMAP, true);
+		}
+		/** @returns {boolean} */
+		get bomAware() {
+			return true;
+		}
+	};
+	/**
+	* UTF-7 encoder. The steps follow the three rules in RFC 2152, section "UTF-7 Definition".
+	* Stateless per write(): every run shifts in and out within the same call. Walks the input one
+	* maximal run at a time:
+	*  1. A run of direct chars is copied through verbatim as ASCII -- Set D and (optionally) Set O
+	*     per Rule 1, plus space/tab/CR/LF per Rule 3.
+	*  2. A lone "+" is emitted as "+-" (Rule 2: the "+-" sequence encodes a literal '+').
+	*  3. A run of non-direct chars is shifted in with "+", emitted as the Modified Base64 of the
+	*     chars' UTF-16BE bytes (Rule 2: 16-bit quantities -> octets, most significant first), then
+	*     shifted out with "-" (which a decoder absorbs).
+	*
+	* e.g. "A" + "≢Α" + "." -> "A" + "+ImIDkQ-" + "."  ==  "A+ImIDkQ-."
+	*/
+	var Utf7Encoder = class {
+		/** @param {object} backend The iconv-lite backend (its bytesToResult turns bytes into a Buffer/Uint8Array). */
+		constructor(backend) {
+			this.backend = backend;
+		}
+		/**
+		* @param {string} str
+		* @returns {Buffer|Uint8Array} The UTF-7 bytes.
+		*/
+		write(str) {
+			const length = str.length;
+			const out = new Uint8Array(length * 5 + 10);
+			let pos = 0;
+			let cursor = 0;
+			while (cursor < length) {
+				const directStart = cursor;
+				UTF7_NONDIRECT.lastIndex = cursor;
+				const match = UTF7_NONDIRECT.exec(str);
+				cursor = match ? match.index : length;
+				pos = copyDirectRun(str, directStart, cursor, out, pos);
+				if (cursor >= length) break;
+				if (str.charCodeAt(cursor) === PLUS && (cursor + 1 >= length || utf7IsDirect(str.charCodeAt(cursor + 1)))) {
+					out[pos++] = PLUS;
+					out[pos++] = MINUS;
+					cursor++;
+					continue;
+				}
+				let runEnd = cursor + 1;
+				while (runEnd < length && !utf7IsDirect(str.charCodeAt(runEnd))) runEnd++;
+				pos = encodeBase64Run(str, cursor, runEnd, out, pos, BASE64_BYTES);
+				cursor = runEnd;
+			}
+			return this.backend.bytesToResult(out, pos);
+		}
+		/** @returns {void} */
+		end() {}
+	};
+	/**
+	* UTF-7-IMAP / Modified UTF-7 encoder. The steps follow RFC 3501, section 5.1.3 ("Mailbox
+	* International Naming Convention"). Stateful across writes: keeps the Base64 bit accumulator open
+	* until a direct char or end(). Per character:
+	*  1. A printable US-ASCII char except "&" (octets 0x20-0x25 and 0x27-0x7e) represents itself.
+	*  2. "&" (0x26) is emitted as "&-".
+	*  3. Any other char (0x00-0x1f and 0x7f-0xff) is shifted in with "&" and accumulated as Modified
+	*     Base64 of its UTF-16BE bytes, with "," used instead of "/"; the run is closed with "-" at the
+	*     next direct char or at end().
+	*/
+	var Utf7IMAPEncoder = class {
+		/** @param {object} backend */
+		constructor(backend) {
+			this.backend = backend;
+			this.inBase64 = false;
+			this.bits = 0;
+			this.nbits = 0;
+		}
+		/**
+		* Closes an open Base64 run: flush the leftover bits, write the shift-out '-', reset state.
+		* @param {Uint8Array} out
+		* @param {number} pos
+		* @returns {number} The new write position.
+		*/
+		_closeBase64(out, pos) {
+			pos = flushBase64Tail(out, pos, this.bits, this.nbits, BASE64_IMAP_BYTES);
+			out[pos++] = MINUS;
+			this.inBase64 = false;
+			this.bits = 0;
+			this.nbits = 0;
+			return pos;
+		}
+		/**
+		* @param {string} str
+		* @returns {Buffer|Uint8Array}
+		*/
+		write(str) {
+			const out = new Uint8Array(str.length * 5 + 10);
+			let pos = 0;
+			for (let cursor = 0; cursor < str.length; cursor++) {
+				const code = str.charCodeAt(cursor);
+				if (code >= 32 && code <= 126) {
+					if (this.inBase64) pos = this._closeBase64(out, pos);
+					out[pos++] = code;
+					if (code === AMP) out[pos++] = MINUS;
+				} else {
+					if (!this.inBase64) {
+						out[pos++] = AMP;
+						this.inBase64 = true;
+					}
+					this.bits = this.bits << 16 | code;
+					this.nbits += 16;
+					while (this.nbits >= 6) {
+						this.nbits -= 6;
+						out[pos++] = BASE64_IMAP_BYTES[this.bits >> this.nbits & 63];
+						this.bits &= (1 << this.nbits) - 1;
+					}
+				}
+			}
+			return this.backend.bytesToResult(out, pos);
+		}
+		/** @returns {Buffer|Uint8Array} Any trailing shift-out bytes from an open Base64 run. */
+		end() {
+			const out = new Uint8Array(2);
+			const pos = this.inBase64 ? this._closeBase64(out, 0) : 0;
+			return this.backend.bytesToResult(out, pos);
+		}
+	};
+	/**
+	* UTF-7 / UTF-7-IMAP decoder. The steps invert RFC 2152, Rule 2 (and Rule 1/3 for direct chars);
+	* for UTF-7-IMAP the equivalent rules are in RFC 3501, section 5.1.3. It runs in two alternating
+	* modes:
+	*  1. Direct mode: copy ASCII bytes through verbatim until the shift-in byte ("+" or "&").
+	*     (RFC 2152 Rule 1 & Rule 3 / RFC 3501 5.1.3: those chars represent themselves.)
+	*  2. "+-" / "&-" decodes to a literal "+" / "&". (RFC 2152 Rule 2: the "+-" sequence.)
+	*  3. Otherwise the shift-in enters Base64 mode: read Modified Base64 chars until a non-Base64 byte
+	*     (the terminator), then decode them (Base64 -> UTF-16BE bytes -> UTF-16 code units, the inverse
+	*     of Rule 2's "16-bit quantities -> octets, most significant first").
+	*  4. A trailing "-" is absorbed; any other terminator is re-read in direct mode (step 1).
+	*     (RFC 2152 Rule 2: the closing "-" "is absorbed".)
+	*
+	* Implementation: each write() views the input bytes as a "latin1" string (1 char per byte) and
+	* scans them natively: direct runs become plain substrings, and Base64 runs go through atob() in
+	* bulk. Streaming-aware: a Base64 run split across chunks flushes its aligned prefix and carries
+	* only the < 8-char tail, so memory stays bounded.
+	*
+	* Conformance (RFC 2152): only ASCII is valid in direct mode, and a Base64 run must end on a 16-bit
+	* boundary with zero padding bits. Ill-formed input is replaced with U+FFFD: a non-ASCII byte while
+	* unshifted, an incomplete code unit, or non-zero trailing bits.
+	*/
+	var Utf7Decoder = class {
+		/**
+		* @param {number} shiftIn Byte that starts a Base64 run ('+' or '&').
+		* @param {string} literal The same char, for the "+-"/"&-" -> literal case.
+		* @param {Int8Array} inv Base64 byte -> value table; also tells a Base64 byte from a terminator (-1).
+		* @param {boolean} imap Whether this is UTF-7-IMAP (',' maps back to '/' for atob()).
+		*/
+		constructor(shiftIn, literal, inv, imap) {
+			this.shiftIn = shiftIn;
+			this.literal = literal;
+			this.inv = inv;
+			this.imap = imap;
+			this.inBase64 = false;
+			this.pending = "";
+			this.sawBase64 = false;
+			this.units = new Uint16Array(0);
+		}
+		/**
+		* Decodes a Base64 string (Base64 alphabet only) to its UTF-16BE code units. No validation: bytes
+		* are paired into code units verbatim (a lone surrogate passes through), and invalid Base64
+		* (length % 4 === 1) yields "" (the caller flags that as ill-formed).
+		* @param {string} base64
+		* @returns {string}
+		*/
+		_decodeBase64(base64) {
+			const length = base64.length;
+			if (length * 3 >> 3 < SMALL_RUN_MAX_UNITS) {
+				if ((length & 3) === 1) return "";
+				const inv = this.inv;
+				let bits = 0;
+				let nbits = 0;
+				let result = "";
+				for (let pos = 0; pos < length; pos++) {
+					bits = bits << 6 | inv[base64.charCodeAt(pos)];
+					nbits += 6;
+					if (nbits >= 16) {
+						nbits -= 16;
+						result += String.fromCharCode(bits >> nbits & 65535);
+						bits &= (1 << nbits) - 1;
+					}
+				}
+				return result;
+			}
+			const std = this.imap ? base64.replace(/,/g, "/") : base64;
+			if (HAS_FROM_BASE64 && std.length * 3 >> 3 >= FROM_BASE64_MIN_UNITS) {
+				let bytes;
+				try {
+					bytes = Uint8Array.fromBase64(std, { lastChunkHandling: "loose" });
+				} catch {
+					return "";
+				}
+				const unitCount = bytes.length >> 1;
+				let hasSurrogate = false;
+				for (let bytePos = 0; bytePos < unitCount * 2; bytePos += 2) if (bytes[bytePos] >= 216 && bytes[bytePos] <= 223) {
+					hasSurrogate = true;
+					break;
+				}
+				if (!hasSurrogate) return utf16beDecoder.decode(bytes.subarray(0, unitCount * 2));
+				if (this.units.length < unitCount) this.units = new Uint16Array(unitCount);
+				const units = this.units;
+				for (let unitPos = 0, bytePos = 0; unitPos < unitCount; unitPos++, bytePos += 2) units[unitPos] = bytes[bytePos] << 8 | bytes[bytePos + 1];
+				return charsFromUnits(units, unitCount);
+			}
+			let bytes;
+			try {
+				bytes = atob(std);
+			} catch {
+				return "";
+			}
+			const unitCount = bytes.length >> 1;
+			if (this.units.length < unitCount) this.units = new Uint16Array(unitCount);
+			const units = this.units;
+			let hasSurrogate = false;
+			for (let unitPos = 0, bytePos = 0; unitPos < unitCount; unitPos++, bytePos += 2) {
+				const unit = bytes.charCodeAt(bytePos) << 8 | bytes.charCodeAt(bytePos + 1);
+				if (unit >= 55296 && unit <= 57343) hasSurrogate = true;
+				units[unitPos] = unit;
+			}
+			if (!hasSurrogate && unitCount >= TEXT_DECODER_MIN_UNITS) return utf16leDecoder.decode(new Uint8Array(units.buffer, units.byteOffset, unitCount * 2));
+			return charsFromUnits(units, unitCount);
+		}
+		/**
+		* Decodes one complete Base64 run, with RFC 2152 trailing-bit validation: a run of `length`
+		* Base64 chars carries 6*length bits, whose remainder mod 16 must be 0/2/4 zero-padding bits;
+		* otherwise it's an incomplete code unit or non-zero padding, replaced with U+FFFD.
+		* @param {string} base64
+		* @returns {string}
+		*/
+		_decodeRun(base64) {
+			const length = base64.length;
+			if (length === 0) return "";
+			const leftover = 6 * length % 16;
+			let bad = leftover > 4;
+			if (!bad && leftover > 0 && (this.inv[base64.charCodeAt(length - 1)] & (1 << leftover) - 1) !== 0) bad = true;
+			const decoded = this._decodeBase64(base64);
+			return bad ? decoded + "�" : decoded;
+		}
+		/**
+		* @param {Buffer|Uint8Array} buf
+		* @returns {string}
+		*/
+		write(buf) {
+			const chars = latin1Decoder.decode(buf);
+			const length = chars.length;
+			let result = "";
+			let cursor = 0;
+			let hasNonAscii = -1;
+			while (cursor < length) if (!this.inBase64) {
+				const shift = buf.indexOf(this.shiftIn, cursor);
+				const directEnd = shift === -1 ? length : shift;
+				if (directEnd > cursor) {
+					if (hasNonAscii === -1) hasNonAscii = chars.search(NON_ASCII) !== -1 ? 1 : 0;
+					const segment = chars.slice(cursor, directEnd);
+					result += hasNonAscii === 0 ? segment : segment.replace(NON_ASCII, "�");
+				}
+				if (shift === -1) break;
+				this.inBase64 = true;
+				this.sawBase64 = false;
+				cursor = shift + 1;
+			} else {
+				let runEnd = cursor;
+				while (runEnd < length && this.inv[buf[runEnd]] !== -1) runEnd++;
+				if (runEnd > cursor) this.sawBase64 = true;
+				if (runEnd === length) {
+					const accumulated = this.pending + chars.slice(cursor);
+					const aligned = accumulated.length - accumulated.length % 8;
+					result += this._decodeBase64(accumulated.slice(0, aligned));
+					this.pending = accumulated.slice(aligned);
+					return result;
+				}
+				const runChars = this.pending + chars.slice(cursor, runEnd);
+				this.pending = "";
+				const terminator = buf[runEnd];
+				if (!this.sawBase64) result += terminator === MINUS ? this.literal : "�";
+				else result += this._decodeRun(runChars);
+				cursor = terminator === MINUS ? runEnd + 1 : runEnd;
+				this.inBase64 = false;
+				this.sawBase64 = false;
+			}
+			return result;
+		}
+		/** @returns {string|undefined} Any code units decoded from a Base64 run still open at end of input. */
+		end() {
+			const result = this.inBase64 ? this._decodeRun(this.pending) : "";
+			this.inBase64 = false;
+			this.pending = "";
+			this.sawBase64 = false;
+			return result.length > 0 ? result : void 0;
+		}
+	};
 	exports.utf7 = Utf7Codec;
 	exports.unicode11utf7 = "utf7";
-	function Utf7Codec(codecOptions, iconv) {
-		this.iconv = iconv;
-	}
-	Utf7Codec.prototype.encoder = Utf7Encoder;
-	Utf7Codec.prototype.decoder = Utf7Decoder;
-	Utf7Codec.prototype.bomAware = true;
-	var nonDirectChars = /[^A-Za-z0-9'\(\),-\.\/:\? \n\r\t]+/g;
-	function Utf7Encoder(options, codec) {
-		this.iconv = codec.iconv;
-	}
-	Utf7Encoder.prototype.write = function(str) {
-		return Buffer.from(str.replace(nonDirectChars, function(chunk) {
-			return "+" + (chunk === "+" ? "" : this.iconv.encode(chunk, "utf16-be").toString("base64").replace(/=+$/, "")) + "-";
-		}.bind(this)));
-	};
-	Utf7Encoder.prototype.end = function() {};
-	function Utf7Decoder(options, codec) {
-		this.iconv = codec.iconv;
-		this.inBase64 = false;
-		this.base64Accum = "";
-	}
-	var base64Regex = /[A-Za-z0-9\/+]/;
-	var base64Chars = [];
-	for (var i = 0; i < 256; i++) base64Chars[i] = base64Regex.test(String.fromCharCode(i));
-	var plusChar = "+".charCodeAt(0);
-	var minusChar = "-".charCodeAt(0);
-	var andChar = "&".charCodeAt(0);
-	Utf7Decoder.prototype.write = function(buf) {
-		var res = "";
-		var lastI = 0;
-		var inBase64 = this.inBase64;
-		var base64Accum = this.base64Accum;
-		for (var i = 0; i < buf.length; i++) if (!inBase64) {
-			if (buf[i] == plusChar) {
-				res += this.iconv.decode(buf.slice(lastI, i), "ascii");
-				lastI = i + 1;
-				inBase64 = true;
-			}
-		} else if (!base64Chars[buf[i]]) {
-			if (i == lastI && buf[i] == minusChar) res += "+";
-			else {
-				var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i), "ascii");
-				res += this.iconv.decode(Buffer.from(b64str, "base64"), "utf16-be");
-			}
-			if (buf[i] != minusChar) i--;
-			lastI = i + 1;
-			inBase64 = false;
-			base64Accum = "";
-		}
-		if (!inBase64) res += this.iconv.decode(buf.slice(lastI), "ascii");
-		else {
-			var b64str = base64Accum + this.iconv.decode(buf.slice(lastI), "ascii");
-			var canBeDecoded = b64str.length - b64str.length % 8;
-			base64Accum = b64str.slice(canBeDecoded);
-			b64str = b64str.slice(0, canBeDecoded);
-			res += this.iconv.decode(Buffer.from(b64str, "base64"), "utf16-be");
-		}
-		this.inBase64 = inBase64;
-		this.base64Accum = base64Accum;
-		return res;
-	};
-	Utf7Decoder.prototype.end = function() {
-		var res = "";
-		if (this.inBase64 && this.base64Accum.length > 0) res = this.iconv.decode(Buffer.from(this.base64Accum, "base64"), "utf16-be");
-		this.inBase64 = false;
-		this.base64Accum = "";
-		return res;
-	};
 	exports.utf7imap = Utf7IMAPCodec;
-	function Utf7IMAPCodec(codecOptions, iconv) {
-		this.iconv = iconv;
-	}
-	Utf7IMAPCodec.prototype.encoder = Utf7IMAPEncoder;
-	Utf7IMAPCodec.prototype.decoder = Utf7IMAPDecoder;
-	Utf7IMAPCodec.prototype.bomAware = true;
-	function Utf7IMAPEncoder(options, codec) {
-		this.iconv = codec.iconv;
-		this.inBase64 = false;
-		this.base64Accum = Buffer.alloc(6);
-		this.base64AccumIdx = 0;
-	}
-	Utf7IMAPEncoder.prototype.write = function(str) {
-		var inBase64 = this.inBase64;
-		var base64Accum = this.base64Accum;
-		var base64AccumIdx = this.base64AccumIdx;
-		var buf = Buffer.alloc(str.length * 5 + 10);
-		var bufIdx = 0;
-		for (var i = 0; i < str.length; i++) {
-			var uChar = str.charCodeAt(i);
-			if (uChar >= 32 && uChar <= 126) {
-				if (inBase64) {
-					if (base64AccumIdx > 0) {
-						bufIdx += buf.write(base64Accum.slice(0, base64AccumIdx).toString("base64").replace(/\//g, ",").replace(/=+$/, ""), bufIdx);
-						base64AccumIdx = 0;
-					}
-					buf[bufIdx++] = minusChar;
-					inBase64 = false;
-				}
-				if (!inBase64) {
-					buf[bufIdx++] = uChar;
-					if (uChar === andChar) buf[bufIdx++] = minusChar;
-				}
-			} else {
-				if (!inBase64) {
-					buf[bufIdx++] = andChar;
-					inBase64 = true;
-				}
-				if (inBase64) {
-					base64Accum[base64AccumIdx++] = uChar >> 8;
-					base64Accum[base64AccumIdx++] = uChar & 255;
-					if (base64AccumIdx == base64Accum.length) {
-						bufIdx += buf.write(base64Accum.toString("base64").replace(/\//g, ","), bufIdx);
-						base64AccumIdx = 0;
-					}
-				}
-			}
-		}
-		this.inBase64 = inBase64;
-		this.base64AccumIdx = base64AccumIdx;
-		return buf.slice(0, bufIdx);
-	};
-	Utf7IMAPEncoder.prototype.end = function() {
-		var buf = Buffer.alloc(10);
-		var bufIdx = 0;
-		if (this.inBase64) {
-			if (this.base64AccumIdx > 0) {
-				bufIdx += buf.write(this.base64Accum.slice(0, this.base64AccumIdx).toString("base64").replace(/\//g, ",").replace(/=+$/, ""), bufIdx);
-				this.base64AccumIdx = 0;
-			}
-			buf[bufIdx++] = minusChar;
-			this.inBase64 = false;
-		}
-		return buf.slice(0, bufIdx);
-	};
-	function Utf7IMAPDecoder(options, codec) {
-		this.iconv = codec.iconv;
-		this.inBase64 = false;
-		this.base64Accum = "";
-	}
-	var base64IMAPChars = base64Chars.slice();
-	base64IMAPChars[",".charCodeAt(0)] = true;
-	Utf7IMAPDecoder.prototype.write = function(buf) {
-		var res = "";
-		var lastI = 0;
-		var inBase64 = this.inBase64;
-		var base64Accum = this.base64Accum;
-		for (var i = 0; i < buf.length; i++) if (!inBase64) {
-			if (buf[i] == andChar) {
-				res += this.iconv.decode(buf.slice(lastI, i), "ascii");
-				lastI = i + 1;
-				inBase64 = true;
-			}
-		} else if (!base64IMAPChars[buf[i]]) {
-			if (i == lastI && buf[i] == minusChar) res += "&";
-			else {
-				var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i), "ascii").replace(/,/g, "/");
-				res += this.iconv.decode(Buffer.from(b64str, "base64"), "utf16-be");
-			}
-			if (buf[i] != minusChar) i--;
-			lastI = i + 1;
-			inBase64 = false;
-			base64Accum = "";
-		}
-		if (!inBase64) res += this.iconv.decode(buf.slice(lastI), "ascii");
-		else {
-			var b64str = base64Accum + this.iconv.decode(buf.slice(lastI), "ascii").replace(/,/g, "/");
-			var canBeDecoded = b64str.length - b64str.length % 8;
-			base64Accum = b64str.slice(canBeDecoded);
-			b64str = b64str.slice(0, canBeDecoded);
-			res += this.iconv.decode(Buffer.from(b64str, "base64"), "utf16-be");
-		}
-		this.inBase64 = inBase64;
-		this.base64Accum = base64Accum;
-		return res;
-	};
-	Utf7IMAPDecoder.prototype.end = function() {
-		var res = "";
-		if (this.inBase64 && this.base64Accum.length > 0) res = this.iconv.decode(Buffer.from(this.base64Accum, "base64"), "utf16-be");
-		this.inBase64 = false;
-		this.base64Accum = "";
-		return res;
-	};
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/sbcs-codec.js
 var require_sbcs_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = require_safer().Buffer;
-	exports._sbcs = SBCSCodec;
-	function SBCSCodec(codecOptions, iconv) {
-		if (!codecOptions) throw new Error("SBCS codec is called without the data.");
-		if (!codecOptions.chars || codecOptions.chars.length !== 128 && codecOptions.chars.length !== 256) throw new Error("Encoding '" + codecOptions.type + "' has incorrect 'chars' (must be of len 128 or 256)");
-		if (codecOptions.chars.length === 128) {
-			var asciiString = "";
-			for (var i = 0; i < 128; i++) asciiString += String.fromCharCode(i);
-			codecOptions.chars = asciiString + codecOptions.chars;
+	exports._sbcs = class SBCSCodec {
+		constructor(codecOptions, iconv) {
+			if (!codecOptions) throw new Error("SBCS codec is called without the data.");
+			if (!codecOptions.chars || codecOptions.chars.length !== 128 && codecOptions.chars.length !== 256) throw new Error("Encoding '" + codecOptions.type + "' has incorrect 'chars' (must be of len 128 or 256)");
+			if (codecOptions.chars.length === 128) {
+				var asciiString = "";
+				for (let i = 0; i < 128; i++) asciiString += String.fromCharCode(i);
+				codecOptions.chars = asciiString + codecOptions.chars;
+			}
+			const decodeBuf = new Uint16Array(codecOptions.chars.length);
+			for (let i = 0; i < codecOptions.chars.length; i++) decodeBuf[i] = codecOptions.chars.charCodeAt(i);
+			this.decodeBuf = decodeBuf;
+			const encodeBuf = iconv.backend.allocBytes(65536, iconv.defaultCharSingleByte.charCodeAt(0));
+			for (let i = 0; i < codecOptions.chars.length; i++) encodeBuf[codecOptions.chars.charCodeAt(i)] = i;
+			this.encodeBuf = encodeBuf;
 		}
-		this.decodeBuf = Buffer.from(codecOptions.chars, "ucs2");
-		var encodeBuf = Buffer.alloc(65536, iconv.defaultCharSingleByte.charCodeAt(0));
-		for (var i = 0; i < codecOptions.chars.length; i++) encodeBuf[codecOptions.chars.charCodeAt(i)] = i;
-		this.encodeBuf = encodeBuf;
-	}
-	SBCSCodec.prototype.encoder = SBCSEncoder;
-	SBCSCodec.prototype.decoder = SBCSDecoder;
-	function SBCSEncoder(options, codec) {
-		this.encodeBuf = codec.encodeBuf;
-	}
-	SBCSEncoder.prototype.write = function(str) {
-		var buf = Buffer.alloc(str.length);
-		for (var i = 0; i < str.length; i++) buf[i] = this.encodeBuf[str.charCodeAt(i)];
-		return buf;
-	};
-	SBCSEncoder.prototype.end = function() {};
-	function SBCSDecoder(options, codec) {
-		this.decodeBuf = codec.decodeBuf;
-	}
-	SBCSDecoder.prototype.write = function(buf) {
-		var decodeBuf = this.decodeBuf;
-		var newBuf = Buffer.alloc(buf.length * 2);
-		var idx1 = 0;
-		var idx2 = 0;
-		for (var i = 0; i < buf.length; i++) {
-			idx1 = buf[i] * 2;
-			idx2 = i * 2;
-			newBuf[idx2] = decodeBuf[idx1];
-			newBuf[idx2 + 1] = decodeBuf[idx1 + 1];
+		get encoder() {
+			return SBCSEncoder;
 		}
-		return newBuf.toString("ucs2");
+		get decoder() {
+			return SBCSDecoder;
+		}
 	};
-	SBCSDecoder.prototype.end = function() {};
+	var SBCSEncoder = class {
+		constructor(opts, codec, backend) {
+			this.backend = backend;
+			this.encodeBuf = codec.encodeBuf;
+		}
+		write(str) {
+			const bytes = this.backend.allocBytes(str.length);
+			for (let i = 0; i < str.length; i++) bytes[i] = this.encodeBuf[str.charCodeAt(i)];
+			return this.backend.bytesToResult(bytes, bytes.length);
+		}
+		end() {}
+	};
+	var SBCSDecoder = class {
+		constructor(opts, codec, backend) {
+			this.decodeBuf = codec.decodeBuf;
+			this.backend = backend;
+		}
+		write(buf) {
+			const decodeBuf = this.decodeBuf;
+			const chars = this.backend.allocRawChars(buf.length);
+			for (let i = 0; i < buf.length; i++) chars[i] = decodeBuf[buf[i]];
+			return this.backend.rawCharsToResult(chars, chars.length);
+		}
+		end() {}
+	};
 }));
 //#endregion
 //#region node_modules/iconv-lite/encodings/sbcs-data.js
@@ -1430,7 +1930,7 @@ var require_sbcs_data_generated = /* @__PURE__ */ __commonJSMin(((exports, modul
 //#endregion
 //#region node_modules/iconv-lite/encodings/dbcs-codec.js
 var require_dbcs_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = require_safer().Buffer;
+	var Buffer$1 = __require("buffer").Buffer;
 	exports._dbcs = DBCSCodec;
 	var UNASSIGNED = -1;
 	var GB18030_CODE = -2;
@@ -1600,7 +2100,7 @@ var require_dbcs_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
 		this.gb18030 = codec.gb18030;
 	}
 	DBCSEncoder.prototype.write = function(str) {
-		var newBuf = Buffer.alloc(str.length * (this.gb18030 ? 4 : 3));
+		var newBuf = Buffer$1.alloc(str.length * (this.gb18030 ? 4 : 3));
 		var leadSurrogate = this.leadSurrogate;
 		var seqObj = this.seqObj;
 		var nextChar = -1;
@@ -1689,7 +2189,7 @@ var require_dbcs_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 	DBCSEncoder.prototype.end = function() {
 		if (this.leadSurrogate === -1 && this.seqObj === void 0) return;
-		var newBuf = Buffer.alloc(10);
+		var newBuf = Buffer$1.alloc(10);
 		var j = 0;
 		if (this.seqObj) {
 			var dbcsCode = this.seqObj[DEF_CHAR];
@@ -1716,7 +2216,7 @@ var require_dbcs_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
 		this.gb18030 = codec.gb18030;
 	}
 	DBCSDecoder.prototype.write = function(buf) {
-		var newBuf = Buffer.alloc(buf.length * 2);
+		var newBuf = Buffer$1.alloc(buf.length * 2);
 		var nodeIdx = this.nodeIdx;
 		var prevBytes = this.prevBytes;
 		var prevOffset = this.prevBytes.length;
@@ -5166,13 +5666,9 @@ var require_gbk_added = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			"",
 			7
 		],
-		[
-			"a6d9",
-			"",
-			6
-		],
-		["a6ec", ""],
-		["a6f3", ""],
+		["a6d9", "︐︒︑︓︔︕︖"],
+		["a6ec", "︗︘"],
+		["a6f3", "︙"],
 		[
 			"a6f6",
 			"",
@@ -5294,12 +5790,12 @@ var require_gbk_added = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			"",
 			93
 		],
-		["fe50", "⺁⺄㑳㑇⺈⺋㖞㘚㘎⺌⺗㥮㤘㧏㧟㩳㧐㭎㱮㳠⺧⺪䁖䅟⺮䌷⺳⺶⺷䎱䎬⺻䏝䓖䙡䙌"],
+		["fe50", "⺁⺄㑳㑇⺈⺋龴㖞㘚㘎⺌⺗㥮㤘龵㧏㧟㩳㧐龶龷㭎㱮㳠⺧龸⺪䁖䅟⺮䌷⺳⺶⺷䎱䎬⺻䏝䓖䙡䙌龹"],
 		[
 			"fe80",
-			"䜣䜩䝼䞍⻊䥇䥺䥽䦂䦃䦅䦆䦟䦛䦷䦶䲣䲟䲠䲡䱷䲢䴓",
+			"䜣䜩䝼䞍⻊䥇䥺䥽䦂䦃䦅䦆䦟䦛䦷䦶龺䲣䲟䲠䲡䱷䲢䴓",
 			6,
-			"䶮",
+			"䶮龻",
 			93
 		],
 		["8135f437", ""]
@@ -8517,10 +9013,46 @@ var require_dbcs_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 }));
 //#endregion
+//#region node_modules/iconv-lite/encodings/whatwg-aliases.js
+var require_whatwg_aliases = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = {
+		xcp1250: "windows1250",
+		xcp1251: "windows1251",
+		xcp1252: "windows1252",
+		xcp1253: "windows1253",
+		xcp1254: "windows1254",
+		xcp1255: "windows1255",
+		xcp1256: "windows1256",
+		xcp1257: "windows1257",
+		xcp1258: "windows1258",
+		dos874: "windows874",
+		csiso88596e: "iso88596",
+		iso88596e: "iso88596",
+		csiso88596i: "iso88596",
+		iso88596i: "iso88596",
+		csiso88598e: "iso88598",
+		iso88598e: "iso88598",
+		csiso88598i: "iso88598",
+		iso88598i: "iso88598",
+		visual: "iso88598",
+		logical: "iso88598",
+		csisolatin9: "iso885915",
+		suneugreek: "iso88597",
+		koi: "koi8r",
+		koi8: "koi8r",
+		xmaccyrillic: "maccyrillic",
+		xmacukrainian: "maccyrillic",
+		xmacroman: "macintosh",
+		xeucjp: "eucjp",
+		cseucpkdfmtjapanese: "eucjp",
+		unicode20utf8: "utf8",
+		xunicode20utf8: "utf8"
+	};
+}));
+//#endregion
 //#region node_modules/iconv-lite/encodings/index.js
 var require_encodings = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var mergeModules = require_merge_exports();
-	var modules = [
+	const modules = [
 		require_internal(),
 		require_utf32(),
 		require_utf16(),
@@ -8529,93 +9061,87 @@ var require_encodings = /* @__PURE__ */ __commonJSMin(((exports) => {
 		require_sbcs_data(),
 		require_sbcs_data_generated(),
 		require_dbcs_codec(),
-		require_dbcs_data()
+		require_dbcs_data(),
+		require_whatwg_aliases()
 	];
-	for (var i = 0; i < modules.length; i++) {
-		var module = modules[i];
-		mergeModules(exports, module);
-	}
+	for (const module$1 of modules) Object.assign(exports, module$1);
 }));
 //#endregion
 //#region node_modules/iconv-lite/lib/streams.js
 var require_streams = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Buffer = require_safer().Buffer;
 	module.exports = function(streamModule) {
-		var Transform = streamModule.Transform;
-		function IconvLiteEncoderStream(conv, options) {
-			this.conv = conv;
-			options = options || {};
-			options.decodeStrings = false;
-			Transform.call(this, options);
+		class IconvLiteEncoderStream extends streamModule.Transform {
+			constructor(conv, options, iconv) {
+				options = options || {};
+				options.decodeStrings = false;
+				super(options);
+				this.conv = conv;
+				this.iconv = iconv;
+			}
+			_transform(chunk, encoding, done) {
+				if (typeof chunk !== "string") return done(/* @__PURE__ */ new Error("Iconv encoding stream needs strings as its input."));
+				try {
+					const res = this.conv.write(chunk);
+					if (res && res.length) this.push(res);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}
+			_flush(done) {
+				try {
+					const res = this.conv.end();
+					if (res && res.length) this.push(res);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}
+			collect(cb) {
+				const chunks = [];
+				this.on("error", cb);
+				this.on("data", (chunk) => chunks.push(chunk));
+				this.on("end", () => cb(null, this.iconv.backend.concatByteResults(chunks)));
+				return this;
+			}
 		}
-		IconvLiteEncoderStream.prototype = Object.create(Transform.prototype, { constructor: { value: IconvLiteEncoderStream } });
-		IconvLiteEncoderStream.prototype._transform = function(chunk, encoding, done) {
-			if (typeof chunk !== "string") return done(/* @__PURE__ */ new Error("Iconv encoding stream needs strings as its input."));
-			try {
-				var res = this.conv.write(chunk);
-				if (res && res.length) this.push(res);
-				done();
-			} catch (e) {
-				done(e);
+		class IconvLiteDecoderStream extends streamModule.Transform {
+			constructor(conv, options) {
+				options = options || {};
+				options.encoding = "utf8";
+				super(options);
+				this.conv = conv;
+				this.encoding = options.encoding;
 			}
-		};
-		IconvLiteEncoderStream.prototype._flush = function(done) {
-			try {
-				var res = this.conv.end();
-				if (res && res.length) this.push(res);
-				done();
-			} catch (e) {
-				done(e);
+			_transform(chunk, encoding, done) {
+				if (!(chunk instanceof Uint8Array)) return done(/* @__PURE__ */ new Error("Iconv decoding stream needs Uint8Array-s or Buffers as its input."));
+				try {
+					const res = this.conv.write(chunk);
+					if (res && res.length) this.push(res, this.encoding);
+					done();
+				} catch (e) {
+					done(e);
+				}
 			}
-		};
-		IconvLiteEncoderStream.prototype.collect = function(cb) {
-			var chunks = [];
-			this.on("error", cb);
-			this.on("data", function(chunk) {
-				chunks.push(chunk);
-			});
-			this.on("end", function() {
-				cb(null, Buffer.concat(chunks));
-			});
-			return this;
-		};
-		function IconvLiteDecoderStream(conv, options) {
-			this.conv = conv;
-			options = options || {};
-			options.encoding = this.encoding = "utf8";
-			Transform.call(this, options);
+			_flush(done) {
+				try {
+					const res = this.conv.end();
+					if (res && res.length) this.push(res, this.encoding);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}
+			collect(cb) {
+				let res = "";
+				this.on("error", cb);
+				this.on("data", (chunk) => {
+					res += chunk;
+				});
+				this.on("end", () => cb(null, res));
+				return this;
+			}
 		}
-		IconvLiteDecoderStream.prototype = Object.create(Transform.prototype, { constructor: { value: IconvLiteDecoderStream } });
-		IconvLiteDecoderStream.prototype._transform = function(chunk, encoding, done) {
-			if (!Buffer.isBuffer(chunk) && !(chunk instanceof Uint8Array)) return done(/* @__PURE__ */ new Error("Iconv decoding stream needs buffers as its input."));
-			try {
-				var res = this.conv.write(chunk);
-				if (res && res.length) this.push(res, this.encoding);
-				done();
-			} catch (e) {
-				done(e);
-			}
-		};
-		IconvLiteDecoderStream.prototype._flush = function(done) {
-			try {
-				var res = this.conv.end();
-				if (res && res.length) this.push(res, this.encoding);
-				done();
-			} catch (e) {
-				done(e);
-			}
-		};
-		IconvLiteDecoderStream.prototype.collect = function(cb) {
-			var res = "";
-			this.on("error", cb);
-			this.on("data", function(chunk) {
-				res += chunk;
-			});
-			this.on("end", function() {
-				cb(null, res);
-			});
-			return this;
-		};
 		return {
 			IconvLiteEncoderStream,
 			IconvLiteDecoderStream
@@ -8626,29 +9152,21 @@ var require_streams = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region (ignored) node_modules/iconv-lite/lib
 var require_lib$1 = /* @__PURE__ */ __commonJSMin((() => {}));
 //#endregion
-//#region node_modules/qrcode-generator/dist/qrcode.mjs
-var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Buffer = require_safer().Buffer;
+//#region node_modules/iconv-lite/lib/index.js
+var require_lib = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var bomHandling = require_bom_handling();
-	var mergeModules = require_merge_exports();
 	module.exports.encodings = null;
 	module.exports.defaultCharUnicode = "�";
 	module.exports.defaultCharSingleByte = "?";
 	module.exports.encode = function encode(str, encoding, options) {
-		str = "" + (str || "");
+		if (typeof str !== "string") throw new TypeError("iconv-lite can only encode() strings.");
 		var encoder = module.exports.getEncoder(encoding, options);
 		var res = encoder.write(str);
 		var trail = encoder.end();
-		return trail && trail.length > 0 ? Buffer.concat([res, trail]) : res;
+		return trail && trail.length > 0 ? module.exports.backend.concatByteResults([res, trail]) : res;
 	};
 	module.exports.decode = function decode(buf, encoding, options) {
-		if (typeof buf === "string") {
-			if (!module.exports.skipDecodeWarning) {
-				console.error("Iconv-lite warning: decode()-ing strings is deprecated. Refer to https://github.com/ashtuchkin/iconv-lite/wiki/Use-Buffers-when-decoding");
-				module.exports.skipDecodeWarning = true;
-			}
-			buf = Buffer.from("" + (buf || ""), "binary");
-		}
+		if (typeof buf === "string") throw new TypeError("iconv-lite can't decode() strings. Please pass Buffer or Uint8Array instead.");
 		var decoder = module.exports.getDecoder(encoding, options);
 		var res = decoder.write(buf);
 		var trail = decoder.end();
@@ -8668,8 +9186,7 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 	module.exports.getCodec = function getCodec(encoding) {
 		if (!module.exports.encodings) {
 			var raw = require_encodings();
-			module.exports.encodings = { __proto__: null };
-			mergeModules(module.exports.encodings, raw);
+			module.exports.encodings = Object.assign({ __proto__: null }, raw);
 		}
 		var enc = module.exports._canonicalizeEncoding(encoding);
 		var codecOptions = {};
@@ -8695,18 +9212,31 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 			}
 		}
 	};
+	function isAsciiWhitespace(code) {
+		return code === 32 || code === 9 || code === 10 || code === 12 || code === 13;
+	}
 	module.exports._canonicalizeEncoding = function(encoding) {
-		return ("" + encoding).toLowerCase().replace(/:\d{4}$|[^0-9a-z]/g, "");
+		encoding = "" + encoding;
+		let start = 0;
+		let end = encoding.length;
+		while (start < end && isAsciiWhitespace(encoding.charCodeAt(start))) start++;
+		while (end > start && isAsciiWhitespace(encoding.charCodeAt(end - 1))) end--;
+		const label = encoding.slice(start, end).toLowerCase();
+		for (let i = 0; i < label.length; i++) {
+			const code = label.charCodeAt(i);
+			if (code <= 8 || code === 11 || code >= 14 && code <= 31 || code >= 127 && code <= 160 || code === 8232 || code === 8233) return label;
+		}
+		return label.replace(/:\d{4}$|[^0-9a-z]/g, "");
 	};
 	module.exports.getEncoder = function getEncoder(encoding, options) {
-		var codec = module.exports.getCodec(encoding);
-		var encoder = new codec.encoder(options, codec);
+		const codec = module.exports.getCodec(encoding);
+		let encoder = codec.createEncoder ? codec.createEncoder(options, module.exports) : new codec.encoder(options, codec, module.exports.backend);
 		if (codec.bomAware && options && options.addBOM) encoder = new bomHandling.PrependBOM(encoder, options);
 		return encoder;
 	};
 	module.exports.getDecoder = function getDecoder(encoding, options) {
-		var codec = module.exports.getCodec(encoding);
-		var decoder = new codec.decoder(options, codec);
+		const codec = module.exports.getCodec(encoding);
+		let decoder = codec.createDecoder ? codec.createDecoder(options, module.exports) : new codec.decoder(options, codec, module.exports.backend);
 		if (codec.bomAware && !(options && options.stripBOM === false)) decoder = new bomHandling.StripBOM(decoder, options);
 		return decoder;
 	};
@@ -8716,10 +9246,10 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 		module.exports.IconvLiteEncoderStream = streams.IconvLiteEncoderStream;
 		module.exports.IconvLiteDecoderStream = streams.IconvLiteDecoderStream;
 		module.exports.encodeStream = function encodeStream(encoding, options) {
-			return new module.exports.IconvLiteEncoderStream(module.exports.getEncoder(encoding, options), options);
+			return new module.exports.IconvLiteEncoderStream(module.exports.getEncoder(encoding, options), options, module.exports);
 		};
 		module.exports.decodeStream = function decodeStream(encoding, options) {
-			return new module.exports.IconvLiteDecoderStream(module.exports.getDecoder(encoding, options), options);
+			return new module.exports.IconvLiteDecoderStream(module.exports.getDecoder(encoding, options), options, module.exports);
 		};
 		module.exports.supportsStreams = true;
 	};
@@ -8731,6 +9261,58 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 	else module.exports.encodeStream = module.exports.decodeStream = function() {
 		throw new Error("iconv-lite Streaming API is not enabled. Use iconv.enableStreamingAPI(require('stream')); to enable it.");
 	};
+	Object.defineProperty(module.exports, "backend", {
+		configurable: true,
+		get() {
+			throw new Error("iconv-lite backend is not set. Please use iconv.setBackend().");
+		}
+	});
+	module.exports.setBackend = function(backend) {
+		delete module.exports.backend;
+		module.exports.backend = backend;
+		module.exports._codecDataCache = { __proto__: null };
+	};
+}));
+//#endregion
+//#region node_modules/iconv-lite/backends/web.js
+var require_web = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = {
+		allocBytes(numBytes, fill) {
+			const arr = new Uint8Array(new ArrayBuffer(numBytes));
+			if (fill != null) arr.fill(fill);
+			return arr;
+		},
+		bytesToResult(bytes, finalLen) {
+			return bytes.subarray(0, finalLen);
+		},
+		concatByteResults(bufs) {
+			bufs = bufs.filter((b) => b.length > 0);
+			if (bufs.length === 0) return new Uint8Array();
+			else if (bufs.length === 1) return bufs[0];
+			const totalLen = bufs.reduce((a, b) => a + b.length, 0);
+			const res = new Uint8Array(new ArrayBuffer(totalLen));
+			let curPos = 0;
+			for (var i = 0; i < bufs.length; i++) {
+				res.set(bufs[i], curPos);
+				curPos += bufs[i].length;
+			}
+			return res;
+		},
+		allocRawChars(numChars) {
+			return new Uint16Array(new ArrayBuffer(numChars * Uint16Array.BYTES_PER_ELEMENT));
+		},
+		rawCharsToResult(rawChars, finalLen) {
+			rawChars = rawChars.subarray(0, finalLen);
+			const res = new TextDecoder("utf-16", { ignoreBOM: true }).decode(rawChars);
+			if (res.length !== finalLen) throw new Error("TextDecoder returned different length string on array " + rawChars);
+			return res;
+		}
+	};
+}));
+//#endregion
+//#region node_modules/qrcode-generator/dist/qrcode.mjs
+var import_index_web = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
+	(module.exports = require_lib()).setBackend(require_web());
 })))());
 /**
 * qrcode
@@ -11315,7 +11897,7 @@ var PrintCPCL = class PrintCPCL {
 		dataArray.map((i) => {
 			return i.toString(16).padStart(2, "0").toUpperCase();
 		}).join("");
-		this.data.push(...import_lib.default.encode(`CG ${meta.byteWidth} ${meta.height} ${x} ${this.currentY} `, "gb18030"), ...dataArray, ...import_lib.default.encode("\r\n", "gb18030"));
+		this.data.push(...import_index_web.default.encode(`CG ${meta.byteWidth} ${meta.height} ${x} ${this.currentY} `, "gb18030"), ...dataArray, ...import_index_web.default.encode("\r\n", "gb18030"));
 		this.currentY = this.currentY + meta.height;
 	}
 	barcode(data, { width = 1, ratio = 1, height = 50, x = 0 } = {}) {
@@ -11324,7 +11906,7 @@ var PrintCPCL = class PrintCPCL {
 	}
 	_pushData(...value) {
 		value.forEach((i) => {
-			this.data.push(...import_lib.default.encode(`${i}\r\n`, "gb18030"));
+			this.data.push(...import_index_web.default.encode(`${i}\r\n`, "gb18030"));
 		});
 	}
 };
@@ -11350,18 +11932,18 @@ var PrintPOS = class PrintPOS {
 	}
 	text_big(value) {
 		this.data.push(27, 33, 48);
-		this.data.push(...import_lib.default.encode(value, "gb18030"));
+		this.data.push(...import_index_web.default.encode(value, "gb18030"));
 		this.data.push(...PrintPOS.TXT_NORMAL);
 		this.data.push(10);
 	}
 	text(value) {
 		this.data.push(...PrintPOS.TXT_NORMAL);
-		this.data.push(...import_lib.default.encode(value, "gb18030"));
+		this.data.push(...import_index_web.default.encode(value, "gb18030"));
 		this.data.push(...PrintPOS.TXT_NORMAL);
 		this.data.push(10);
 	}
 	qrcode(value) {
-		const bytes = import_lib.default.encode(value, "gb18030");
+		const bytes = import_index_web.default.encode(value, "gb18030");
 		const qrSize = [
 			29,
 			40,
@@ -11406,7 +11988,7 @@ var PrintPOS = class PrintPOS {
 		this.data.push(10, 10);
 	}
 	barcode(value, { pos = 2, height = 50, width = 2, format = 4 } = {}) {
-		const bytes = import_lib.default.encode(value, "gb18030");
+		const bytes = import_index_web.default.encode(value, "gb18030");
 		const barPostion = [
 			29,
 			72,
