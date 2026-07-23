@@ -19,6 +19,7 @@
     "build": "rolldown -c"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
     "iconv-lite": "^1.0.0-alpha.2",
     "qrcode-generator": "^2.0.4"
   },
