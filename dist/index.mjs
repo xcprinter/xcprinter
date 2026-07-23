@@ -13365,7 +13365,6 @@ var PrintPOS = class PrintPOS {
 		this.data.push(29, 76, 18, 0);
 	}
 	render() {
-		this.data.push(...Array(5).fill(10));
 		if (this.debug) this.debug();
 		return this.data;
 	}
@@ -13373,6 +13372,9 @@ var PrintPOS = class PrintPOS {
 		console.debug("打印数据：", this.data.map((i) => {
 			return i.toString(16).padStart(2, "0");
 		}).join(" "));
+	}
+	blankLine(size = 1) {
+		this.data.push(...Array(size).fill(10));
 	}
 	text_big(value) {
 		this.data.push(27, 33, 48);
