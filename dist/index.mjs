@@ -13550,4 +13550,52 @@ var PrintPic = class {
 	}
 };
 //#endregion
-export { PrintCPCL, PrintPOS, PrintPic };
+//#region src/print_command.js
+var PrintCommand = class {
+	setWifi(ssid, password) {
+		const size = ssid.length + password.length + 7;
+		let xor = 104;
+		xor ^= ssid.length;
+		for (const byte of ssid) xor ^= byte;
+		xor ^= 3;
+		xor ^= 1;
+		xor ^= password.length;
+		for (const byte of password) xor ^= byte;
+		const data = [];
+		data.push(31, 40, 15);
+		data.push(...this._doubleDigit(size));
+		data.push(31, 119);
+		data.push(ssid.length);
+		data.push(...ssid);
+		data.push(3, 1);
+		data.push(password.length);
+		data.push(...password);
+		data.push(xor);
+		return data;
+	}
+	setDark(value) {
+		const config = [];
+		config.push(5);
+		config.push(1);
+		config.push(0);
+		config.push(0);
+		config.push(0);
+		config.push(value);
+		config.push(255);
+		config.push(0);
+		config.push(0);
+		let xor = 108;
+		for (const i of config) xor ^= i;
+		const data = [];
+		data.push(31, 40, 15);
+		data.push(12, 0);
+		data.push(31, 115);
+		data.push(...config);
+		data.push(xor);
+	}
+	_doubleDigit(value) {
+		return [value % 256, Math.floor(value / 256)];
+	}
+};
+//#endregion
+export { PrintCPCL, PrintCommand, PrintPOS, PrintPic };
