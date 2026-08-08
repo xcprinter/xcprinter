@@ -13552,7 +13552,9 @@ var PrintPic = class {
 //#endregion
 //#region src/print_command.js
 var PrintCommand = class {
-	setWifi(ssid, password) {
+	setWifi(inputSsid, inputPassword) {
+		const ssid = import_index_web.default.encode(inputSsid, "utf-8");
+		const password = import_index_web.default.encode(inputPassword, "utf-8");
 		const size = ssid.length + password.length + 7;
 		let xor = 104;
 		xor ^= ssid.length;
