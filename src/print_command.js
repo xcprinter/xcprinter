@@ -3,7 +3,9 @@ import iconv from 'iconv-lite'
 export default class PrintCommand {
 
   // 配置 WIFI
-  setWifi(ssid, password) {
+  setWifi(inputSsid, inputPassword) {
+    const ssid = iconv.encode(inputSsid, 'utf-8')
+    const password = iconv.encode(inputPassword, 'utf-8')
     const size = ssid.length + password.length + 7
 
     // 计算校验位
