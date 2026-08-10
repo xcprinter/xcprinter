@@ -61,6 +61,28 @@ export default class PrintCommand {
     data.push(xor)   // XOR 校验值
   }
 
+  // 设置蓝牙名称
+  setName(value) {
+    const name = iconv.encode(value, 'utf-8')
+    const length = name.length + 5 + 4
+
+    // 计算校验位
+    let xor = 0x1f ^ 0x42
+    for (const byte of name) {
+      xor ^= byte
+    }
+
+    const data = []
+    data.push(0x1f, 0x28, 0x0f)
+    data.push(...this._doubleDigit(length))
+    data.push(0x1f, 0x42)
+    data.push(...name)
+    data.push(0x00, 0x30, 0x30, 0x30, 0x30, 0x00) // 配对码 0000
+    data.push(xor)
+
+    return data
+  }
+
   _doubleDigit(value) {
     return [value % 256, Math.floor(value / 256)]
   }
