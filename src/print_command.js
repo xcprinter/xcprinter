@@ -23,7 +23,7 @@ export default class PrintCommand {
 
     const data = []
     data.push(0x1f, 0x28, 0x0f)  // 设置 Wifi
-    data.push(...this._doubleDigit(size))  // 数据总长度
+    data.push(...this.#doubleDigit(size))  // 数据总长度
     data.push(0x1f, 0x77)
     data.push(ssid.length)  // SSID 长度
     data.push(...ssid)
@@ -36,13 +36,14 @@ export default class PrintCommand {
   }
 
   setDark(value) {
+    const dark = parseInt(value)
     const config = []
     config.push(0x05)  // 波特率
     config.push(0x01) // 切刀开关，0 为可用
     config.push(0x00)  // 蜂鸣器开关
     config.push(0x00)  // 钱箱开关
     config.push(0x00)  // 打印宽度，0 为 576
-    config.push(value)  // 浓度选项
+    config.push(dark)  // 浓度选项
     config.push(0xff)  // codepage, 0xff 中文， 0xfd utf-8
     config.push(0x00)  // 7 无效
     config.push(0x00)  // 字体
@@ -74,7 +75,7 @@ export default class PrintCommand {
 
     const data = []
     data.push(0x1f, 0x28, 0x0f)
-    data.push(...this._doubleDigit(length))
+    data.push(...this.#doubleDigit(length))
     data.push(0x1f, 0x42)
     data.push(...name)
     data.push(0x00, 0x30, 0x30, 0x30, 0x30, 0x00) // 配对码 0000
@@ -83,7 +84,17 @@ export default class PrintCommand {
     return data
   }
 
-  _doubleDigit(value) {
+  // 设置加热时间
+  setTime(value) {
+    const time = parseInt(value)
+    const data = []
+    data.push(0x1f, 0x2d, 0x31, 0x02)
+    data.push(...this.#doubleDigit(time))
+
+    return data
+  }
+
+  #doubleDigit(value) {
     return [value % 256, Math.floor(value / 256)]
   }
 
