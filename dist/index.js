@@ -12104,7 +12104,7 @@ var PrintCommand = class {
 		for (const byte of password) xor ^= byte;
 		const data = [];
 		data.push(31, 40, 15);
-		data.push(...this._doubleDigit(size));
+		data.push(...this.#doubleDigit(size));
 		data.push(31, 119);
 		data.push(ssid.length);
 		data.push(...ssid);
@@ -12115,13 +12115,14 @@ var PrintCommand = class {
 		return data;
 	}
 	setDark(value) {
+		const dark = parseInt(value);
 		const config = [];
 		config.push(5);
 		config.push(1);
 		config.push(0);
 		config.push(0);
 		config.push(0);
-		config.push(value);
+		config.push(dark);
 		config.push(255);
 		config.push(0);
 		config.push(0);
@@ -12134,7 +12135,28 @@ var PrintCommand = class {
 		data.push(...config);
 		data.push(xor);
 	}
-	_doubleDigit(value) {
+	setName(value) {
+		const name = import_index_node.default.encode(value, "utf-8");
+		const length = name.length + 5 + 4;
+		let xor = 93;
+		for (const byte of name) xor ^= byte;
+		const data = [];
+		data.push(31, 40, 15);
+		data.push(...this.#doubleDigit(length));
+		data.push(31, 66);
+		data.push(...name);
+		data.push(0, 48, 48, 48, 48, 0);
+		data.push(xor);
+		return data;
+	}
+	setTime(value) {
+		const time = parseInt(value);
+		const data = [];
+		data.push(31, 45, 49, 2);
+		data.push(...this.#doubleDigit(time));
+		return data;
+	}
+	#doubleDigit(value) {
 		return [value % 256, Math.floor(value / 256)];
 	}
 };
