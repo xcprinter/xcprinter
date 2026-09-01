@@ -1,6 +1,6 @@
 {
   "name": "xcprinter",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "CPCL / POS printer",
   "keywords": [
     "CPCL",
@@ -19,8 +19,7 @@
     "build": "rolldown -c"
   },
   "dependencies": {
-    "buffer": "^6.0.3",
-    "iconv-lite": "^1.0.0-alpha.2",
+    "iconv-lite": "^0.7.3",
     "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
