@@ -114,8 +114,8 @@ var require_internal = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			}
 		};
 		else this.decoder = new TextDecoder(codec.enc, {
-			ignoreBOM: options?.stripBOM === false || typeof options?.stripBOM === "function",
-			fatal: !!options?.fatal
+			ignoreBOM: (options === null || options === void 0 ? void 0 : options.stripBOM) === false || typeof (options === null || options === void 0 ? void 0 : options.stripBOM) === "function",
+			fatal: !!(options === null || options === void 0 ? void 0 : options.fatal)
 		});
 	}
 	InternalDecoder.prototype.write = function(buf) {
@@ -12089,8 +12089,28 @@ var PrintPic = class {
 	}
 };
 //#endregion
+//#region \0@oxc-project+runtime@0.132.0/helpers/checkPrivateRedeclaration.js
+function _checkPrivateRedeclaration(e, t) {
+	if (t.has(e)) throw new TypeError("Cannot initialize the same private elements twice on an object");
+}
+//#endregion
+//#region \0@oxc-project+runtime@0.132.0/helpers/classPrivateMethodInitSpec.js
+function _classPrivateMethodInitSpec(e, a) {
+	_checkPrivateRedeclaration(e, a), a.add(e);
+}
+//#endregion
+//#region \0@oxc-project+runtime@0.132.0/helpers/assertClassBrand.js
+function _assertClassBrand(e, t, n) {
+	if ("function" == typeof e ? e === t : e.has(t)) return arguments.length < 3 ? t : n;
+	throw new TypeError("Private element is not present on this object");
+}
+//#endregion
 //#region src/print_command.js
+var _PrintCommand_brand = /* @__PURE__ */ new WeakSet();
 var PrintCommand = class {
+	constructor() {
+		_classPrivateMethodInitSpec(this, _PrintCommand_brand);
+	}
 	setWifi(inputSsid, inputPassword) {
 		const ssid = import_index_node.default.encode(inputSsid, "utf-8");
 		const password = import_index_node.default.encode(inputPassword, "utf-8");
@@ -12104,7 +12124,7 @@ var PrintCommand = class {
 		for (const byte of password) xor ^= byte;
 		const data = [];
 		data.push(31, 40, 15);
-		data.push(...this.#doubleDigit(size));
+		data.push(..._assertClassBrand(_PrintCommand_brand, this, _doubleDigit).call(this, size));
 		data.push(31, 119);
 		data.push(ssid.length);
 		data.push(...ssid);
@@ -12142,7 +12162,7 @@ var PrintCommand = class {
 		for (const byte of name) xor ^= byte;
 		const data = [];
 		data.push(31, 40, 15);
-		data.push(...this.#doubleDigit(length));
+		data.push(..._assertClassBrand(_PrintCommand_brand, this, _doubleDigit).call(this, length));
 		data.push(31, 66);
 		data.push(...name);
 		data.push(0, 48, 48, 48, 48, 0);
@@ -12153,13 +12173,13 @@ var PrintCommand = class {
 		const time = parseInt(value);
 		const data = [];
 		data.push(31, 45, 49, 2);
-		data.push(...this.#doubleDigit(time));
+		data.push(..._assertClassBrand(_PrintCommand_brand, this, _doubleDigit).call(this, time));
 		return data;
 	}
-	#doubleDigit(value) {
-		return [value % 256, Math.floor(value / 256)];
-	}
 };
+function _doubleDigit(value) {
+	return [value % 256, Math.floor(value / 256)];
+}
 //#endregion
 exports.PrintCPCL = PrintCPCL;
 exports.PrintCommand = PrintCommand;
