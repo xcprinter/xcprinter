@@ -4,7 +4,7 @@ export default defineConfig([
   {
     input: 'index.js',
     transform: {
-      target: 'es2019'
+      target: 'es2018'
     },
     output: [
       {

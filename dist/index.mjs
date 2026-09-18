@@ -2613,7 +2613,7 @@ var require_utf7 = /* @__PURE__ */ __commonJSMin(((exports) => {
 				let bytes;
 				try {
 					bytes = Uint8Array.fromBase64(std, { lastChunkHandling: "loose" });
-				} catch {
+				} catch (_unused) {
 					return "";
 				}
 				const unitCount = bytes.length >> 1;
@@ -2631,7 +2631,7 @@ var require_utf7 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			let bytes;
 			try {
 				bytes = atob(std);
-			} catch {
+			} catch (_unused2) {
 				return "";
 			}
 			const unitCount = bytes.length >> 1;
