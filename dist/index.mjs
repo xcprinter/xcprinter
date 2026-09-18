@@ -10757,7 +10757,7 @@ var require_web = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/qrcode-generator/dist/qrcode.mjs
 var import_index_web = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
 	(module.exports = require_lib()).setBackend(require_web());
-})))());
+})))(), 1);
 /**
 * qrcode
 * @param typeNumber 1 to 40

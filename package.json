@@ -1,6 +1,7 @@
 {
   "name": "xcprinter",
-  "version": "1.0.15",
+  "version": "1.0.17",
+  "type": "module",
   "description": "CPCL / POS printer",
   "keywords": [
     "CPCL",
